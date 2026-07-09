@@ -46,6 +46,7 @@ function App() {
   const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "â†“ 0.0 KB/s | â†‘ 0.0 KB/s" });
 
   const [showLoopbackMenu, setShowLoopbackMenu] = useState(false);
+  const [showLogUpload, setShowLogUpload] = useState(false);
   const [lastAttackForAlert, setLastAttackForAlert] = useState(null); // Ù„ØªØªØ¨Ø¹ Ø¢Ø®Ø± Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¥Ù†Ø°Ø§Ø±
   const [alarmPlayedForSession, setAlarmPlayedForSession] = useState(false); // Ù„Ø¶Ù…Ø§Ù† ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙ‚Ø·
   const isSpeaking = useRef(false); // Ù„Ù…Ù†Ø¹ ØªØ´ØºÙŠÙ„ ÙˆØ¸ÙŠÙØªÙŠÙ† Ù†Ø·Ù‚ ÙÙŠ Ù†ÙØ³ Ø§Ù„ÙˆÙ‚Øª
