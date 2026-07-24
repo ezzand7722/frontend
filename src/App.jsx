@@ -13,6 +13,7 @@ import ConfigModal from './components/ConfigModal';
 import LiveThreatsModule from './components/LiveThreatsModule';
 import { randomItem, generateRandomIP, createTestAttack, createDoubleAttackVectors, createLoopbackAttack } from './components/attackEngine';
 import { sfx } from './logic/SFXEngine';
+import { getActiveAttackCount, getCombinedActiveAttacks } from './logic/attackState';
 
 import './App.css';
 import { initialHistoryData } from './data/attackData';
@@ -36,6 +37,21 @@ function App() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [activeTestAttack, setActiveTestAttack] = useState(null);
   const [activeAttacks, setActiveAttacks] = useState([]);
+  // Debug wrapper to trace unexpected additions to activeAttacks
+  const setActiveAttacksWrapper = (updater) => {
+    setActiveAttacks(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        const prevLen = Array.isArray(prev) ? prev.length : NaN;
+        const nextLen = Array.isArray(next) ? next.length : NaN;
+        if (Number.isFinite(prevLen) && Number.isFinite(nextLen) && nextLen > prevLen) {
+          console.log('[DEBUG] activeAttacks increased', prevLen, '->', nextLen);
+          console.trace();
+        }
+      } catch (e) { console.error(e); }
+      return next;
+    });
+  };
   const [doubleAttackMode, setDoubleAttackMode] = useState(false);
   const [selectedAttackForDetail, setSelectedAttackForDetail] = useState(null);
   const [showMultiAttackDetail, setShowMultiAttackDetail] = useState(false);
@@ -320,7 +336,7 @@ function App() {
                 return;
             }
 
-            setActiveAttacks(prev => {
+            setActiveAttacksWrapper(prev => {
               const next = prev.filter(a => a.id !== mappedAttack.id);
               return [{ ...mappedAttack, timestamp: new Date().toLocaleTimeString() }, ...next];
             });
@@ -330,7 +346,7 @@ function App() {
             
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
               if (d?.stats) {
-                setActiveAttacks(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
+                setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
                 setActiveTestAttack(curr => curr?.id === mappedAttack.id ? { ...curr, ...d.stats } : curr);
                 setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
               }
@@ -460,10 +476,8 @@ function App() {
     let timer;
     if (isAttacked && currentScreen === 'main' && showOverlay) {
       timer = setTimeout(() => {
-        // Ø§Ø­Ø³Ø¨ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø© (activeTestAttack + activeAttacks)
-        const totalAttacks = (activeTestAttack ? 1 : 0) + activeAttacks.length;
+        const totalAttacks = getActiveAttackCount({ activeTestAttack, activeAttacks });
 
-        // Ø§Ù†ØªÙ‚Ù„ Ø¥Ù„Ù‰ Ø´Ø§Ø´Ø© Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ù…ØªØ¹Ø¯Ø¯Ø© Ø¥Ø°Ø§ ÙƒØ§Ù† Ù‡Ù†Ø§Ùƒ Ù‡Ø¬Ù…ØªØ§Ù† Ø£Ùˆ Ø£ÙƒØ«Ø±
         if (totalAttacks >= 2) {
           setCurrentScreen('double_attack');
         } else if (activeTestAttack || activeAttacks.length === 1) {
@@ -471,7 +485,8 @@ function App() {
         }
 
         // Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰/Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ø¥Ø°Ø§ Ù„Ù… ÙŠØªÙ… Ø¹Ø±Ø¶Ù‡
-        const firstAttack = activeTestAttack || (activeAttacks.length > 0 ? activeAttacks[0] : null);
+        const combinedAttacks = getCombinedActiveAttacks({ activeTestAttack, activeAttacks });
+        const firstAttack = combinedAttacks.length > 0 ? combinedAttacks[0] : null;
         if (firstAttack && !firstAttack.alertShown) {
           playFemaleAlert();
         }
@@ -507,7 +522,7 @@ function App() {
     setIsAttacked(false);
     setShowOverlay(false);
     setActiveTestAttack(null);
-    setActiveAttacks([]);
+    setActiveAttacksWrapper([]);
     setLastAttackForAlert(null); // Ø£Ø¹Ø¯ ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø¥Ù†Ø°Ø§Ø±
     setAlarmPlayedForSession(false); // Ø£Ø¹Ø¯ ØªØ¹ÙŠÙŠÙ† Ø¹Ù„Ù… Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„Ù„Ø¬Ù„Ø³Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©
     setDoubleAttackMode(false);
@@ -557,7 +572,7 @@ function App() {
 
       // ØªØ­Ø¯ÙŠØ« progress Ù„ÙƒÙ„ Ù‡Ø¬Ù…Ø© ÙÙŠ activeAttacks ÙˆØ­Ø°Ù Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø© ÙÙˆØ±Ø§Ù‹
       if (activeAttacks.length > 0) {
-        setActiveAttacks(prev => {
+        setActiveAttacksWrapper(prev => {
           const updated = prev.map(attack => {
             const now = Date.now();
             const startTime = attack.startTime || now;
@@ -638,7 +653,7 @@ function App() {
     if (!isAttacked || activeAttacks.length === 0) return;
 
     const autoRemoveInterval = setInterval(() => {
-      setActiveAttacks(prev => {
+      setActiveAttacksWrapper(prev => {
         const now = Date.now();
         // Ù…Ø¯Ø© Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„ÙƒÙ„ Ù‡Ø¬Ù…Ø© (25-35 Ø«Ø§Ù†ÙŠØ©)
         const remaining = prev.filter(attack => {
@@ -673,7 +688,7 @@ function App() {
       setActiveTestAttack(newAttack);
       setSelectedAttackForDetail(newAttack);
       setLastAttackForAlert(newAttack); // Ø­Ø¯Ø« Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„ÙŠÙ‚Ø±Ø£ Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©
-      setActiveAttacks([]);
+      setActiveAttacksWrapper([]);
       setDoubleAttackMode(false);
       setShowMultiAttackDetail(false);
       setAlertSuppressed(false);
@@ -691,7 +706,7 @@ function App() {
   const addNewVector = () => {
     if (!isAttacked || settings.shieldActive) return;
     const newAttack = { ...createTestAttack(), startTime: Date.now(), duration: 40000 + Math.random() * 20000, progress: 0 };
-    setActiveAttacks(prev => [...prev, newAttack]);
+    setActiveAttacksWrapper(prev => [...prev, newAttack]);
     setLastAttackForAlert(newAttack); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -708,7 +723,7 @@ function App() {
     const [attack1, attack2] = createDoubleAttackVectors();
     const startTime = Date.now();
     setSelectedAttackForDetail(null);
-    setActiveAttacks([
+    setActiveAttacksWrapper([
       { ...attack1, startTime, duration: 40000 + Math.random() * 20000, progress: 0 },
       { ...attack2, startTime, duration: 40000 + Math.random() * 20000, progress: 0 }
     ]);
@@ -729,7 +744,7 @@ function App() {
     if (!isAttacked || settings.shieldActive) return;
     const [attack1, attack2] = createDoubleAttackVectors();
     const now = Date.now();
-    setActiveAttacks(prev => [...prev, { ...attack1, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }, { ...attack2, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }]);
+    setActiveAttacksWrapper(prev => [...prev, { ...attack1, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }, { ...attack2, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }]);
     setLastAttackForAlert(attack1); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -748,7 +763,7 @@ function App() {
       newAttacks.push(a);
     }
 
-    setActiveAttacks(newAttacks);
+    setActiveAttacksWrapper(newAttacks);
     setDoubleAttackMode(false);
     setIsAttacked(true);
     setShowOverlay(true);
@@ -773,7 +788,7 @@ function App() {
       newAttacks.push(a);
     }
 
-    setActiveAttacks(prev => [...prev, ...newAttacks]);
+    setActiveAttacksWrapper(prev => [...prev, ...newAttacks]);
     setLastAttackForAlert(newAttacks[0]); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -805,7 +820,7 @@ function App() {
   const addLoopbackVector = (type) => {
     if (!isAttacked || settings.shieldActive) return;
     const lbAttack = { ...createLoopbackAttack(type), startTime: Date.now(), duration: 40000 + Math.random() * 20000, progress: 0 };
-    setActiveAttacks(prev => [...prev, lbAttack]);
+    setActiveAttacksWrapper(prev => [...prev, lbAttack]);
     setLastAttackForAlert(lbAttack); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -993,35 +1008,42 @@ function App() {
 
           {activeModule === 'live' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
-              <button className="close-btn-lg" onClick={() => setActiveModule(null)}>Ã—</button>
-              <LiveThreatsModule isAttacked={isAttacked} doubleAttackMode={doubleAttackMode} activeAttacks={activeAttacks} activeTestAttack={activeTestAttack} onSelectAttack={openAttackDetail} />
+              <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
+              <LiveThreatsModule
+                isAttacked={isAttacked}
+                doubleAttackMode={doubleAttackMode}
+                activeAttacks={activeAttacks}
+                activeTestAttack={activeTestAttack}
+                onSelectAttack={openAttackDetail}
+                onOpenMultiDashboard={() => { setShowOverlay(true); setCurrentScreen('double_attack'); }}
+              />
             </div>
           )}
 
           {activeModule === 'network' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
-              <button className="close-btn-lg" onClick={() => setActiveModule(null)}>Ã—</button>
+              <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
               <NetworkModule activeAttack={activeTestAttack} activeAttacks={activeAttacks} onSelectAttack={openAttackDetail} serverStats={serverStats} />
             </div>
           )}
 
           {activeModule === 'history' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all', background: '#020b02' }}>
-              <button className="close-btn-lg" onClick={() => setActiveModule(null)}>Ã—</button>
+              <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
               <HistoryModule historyList={historyList} onClearHistory={() => setHistoryList([])} />
             </div>
           )}
 
           {activeModule === 'analysis' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
-              <button className="close-btn-lg" onClick={() => setActiveModule(null)}>Ã—</button>
-              <AnalysisScreen onClose={() => setActiveModule(null)} isAttacked={isAttacked} activeAttack={activeTestAttack || (historyList.length > 0 ? historyList[0] : null)} settings={settings} />
+              <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
+              <AnalysisScreen onClose={() => setActiveModule(null)} isAttacked={isAttacked} activeAttack={activeTestAttack || (historyList.length > 0 ? historyList[0] : null)} activeAttacks={activeAttacks} settings={settings} />
             </div>
           )}
 
           {activeModule === 'config' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
-              <button className="close-btn-lg" onClick={() => setActiveModule(null)}>Ã—</button>
+              <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
               <ConfigModal settings={settings} setSettings={setSettings} activeTab={activeTab} setActiveTab={setActiveTab} />
             </div>
           )}

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import LiveMap from './LiveMap';
+import { getActiveAttackCount, getCombinedActiveAttacks } from '../logic/attackState';
 
 // مكون فرعي لعرض النص حرفاً بحرف (تأثير النوع السينمائي)
 const Typewriter = ({ text, delay = 40, startDelay = 0 }) => {
@@ -42,11 +43,13 @@ const AttackOverlay = ({
   lastAttackForAlert
 }) => {
   
+  const combinedAttacks = useMemo(() => getCombinedActiveAttacks({ activeTestAttack, activeAttacks }), [activeTestAttack, activeAttacks]);
+  const activeAttackCount = combinedAttacks.length;
   const attackToShow = detailAttack || activeTestAttack;
   // لا نسمح بإيقاف الهجمة من شاشة main للهجمات الفردية
-  const isSingleAttack = activeAttacks.length === 0 && activeTestAttack;
+  const isSingleAttack = activeAttackCount === 1;
   const handleMainAlertClick = (alertSuppressed || doubleAttackMode || isSingleAttack) ? undefined : toggleAttack;
-  const mainAlertIp = lastAttackForAlert?.ip || activeTestAttack?.ip || (activeAttacks.length > 0 ? activeAttacks[activeAttacks.length - 1].ip : "UNKNOWN");
+  const mainAlertIp = lastAttackForAlert?.ip || activeTestAttack?.ip || (combinedAttacks.length > 0 ? combinedAttacks[combinedAttacks.length - 1].ip : "UNKNOWN");
 
   // --- حالات البيانات المباشرة (Metrics) ---
   const [liveMetrics, setLiveMetrics] = useState({
@@ -210,38 +213,6 @@ const AttackOverlay = ({
             pointerEvents: 'none', animation: 'pulse-red-bg 1s infinite'
           }}></div>
           <div className="full-screen-alert" onClick={handleMainAlertClick} style={{ cursor: doubleAttackMode ? 'default' : 'pointer' }}>
-            {/* زر الإغلاق X هنا ينهي كل شيء */}
-            <button 
-              onClick={handleHardClose} 
-              style={{ 
-                position: 'absolute', 
-                top: '18px', 
-                right: '18px', 
-                width: '48px', 
-                height: '48px', 
-                background: 'rgba(0,0,0,0.8)', 
-                border: '2px solid #ff4444', 
-                color: '#ff4444', 
-                fontSize: '28px', 
-                cursor: 'pointer', 
-                zIndex: 10000,
-                borderRadius: '2px',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 68, 68, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0,0,0,0.8)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              ×
-            </button>
             <div className="alert-content">
               <div className="alert-header" style={{ letterSpacing: '5px' }}>
                 {" >>> CRITICAL_SYSTEM_BREACH <<< "}
@@ -261,16 +232,16 @@ const AttackOverlay = ({
       )}
 
       {/* --- الشاشة 2A: لوحة Double Attack المنقسمة --- */}
-      {currentScreen === 'double_attack' && (activeAttacks.length >= 2 || (activeTestAttack && activeAttacks.length >= 1)) && (
+      {currentScreen === 'double_attack' && activeAttackCount >= 2 && (
         <div className="sub-screen-overlay" style={{ overflowY: 'auto', paddingBottom: '40px' }}>
           <button className="close-btn-lg" onClick={handleHardClose}>×</button>
           <div className="screen-header">
             <h2 className="glitch-red" style={{ color: '#ff0000', textAlign: 'center', marginBottom: '30px' }}>
-              {` >>> MULTIPLE_VECTOR_ANALYSIS (${(activeTestAttack ? 1 : 0) + activeAttacks.length} ATTACKS) <<< `}
+              {` >>> MULTIPLE_VECTOR_ANALYSIS (${activeAttackCount} ATTACKS) <<< `}
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: ((activeTestAttack ? 1 : 0) + activeAttacks.length) > 3 ? 'repeat(2, 1fr)' : '1fr', gap: '25px', padding: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: activeAttackCount > 3 ? 'repeat(2, 1fr)' : '1fr', gap: '25px', padding: '20px' }}>
             {activeTestAttack && (
               <div key={activeTestAttack.id} style={{ background: 'rgba(0,0,0,0.95)', border: '1px solid rgba(255,0,0,0.35)', padding: '20px', minHeight: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
@@ -283,7 +254,7 @@ const AttackOverlay = ({
                     key={activeTestAttack.id} 
                     isAttacked={true} 
                     attackerCoords={activeTestAttack.coords} 
-                    customWidth={((activeTestAttack ? 1 : 0) + activeAttacks.length) > 3 ? 350 : 460} 
+                    customWidth={activeAttackCount > 3 ? 350 : 460} 
                     customHeight={280} 
                   />
                 </div>
@@ -388,7 +359,7 @@ const AttackOverlay = ({
                     key={attack.id} 
                     isAttacked={true} 
                     attackerCoords={attack.coords} 
-                    customWidth={((activeTestAttack ? 1 : 0) + activeAttacks.length) > 3 ? 350 : 460} 
+                    customWidth={activeAttackCount > 3 ? 350 : 460} 
                     customHeight={280} 
                   />
                 </div>
@@ -524,53 +495,58 @@ const AttackOverlay = ({
           
           <div className="screen-header">
             <h2 className="glitch-red" style={{ color: '#ff0000', textAlign: 'center' }}>
-              {` >>> LIVE BREACH ANALYSIS (${(activeTestAttack ? 1 : 0) + activeAttacks.length} ACTIVE) <<< `}
+              {` >>> LIVE BREACH ANALYSIS (${activeAttackCount} ACTIVE) <<< `}
             </h2>
           </div>
 
-          {((activeTestAttack && activeAttacks.length >= 1) || activeAttacks.length > 1) && (
+          {((activeAttackCount >= 1 && activeAttacks.length >= 1) || activeAttackCount > 1 || detailAttack) && (
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', margin: '20px 0 20px 0', overflowX: 'auto', paddingBottom: '10px' }}>
-              {activeTestAttack && (
+              {detailAttack ? (
                 <button
-                  onClick={() => onDetailView?.(activeTestAttack)}
                   style={{
                     padding: '12px 18px',
-                    color: activeTestAttack.id === attackToShow.id ? '#000' : '#fff',
-                    background: activeTestAttack.id === attackToShow.id ? '#00ff41' : 'rgba(255,255,255,0.08)',
-                    border: activeTestAttack.id === attackToShow.id ? '1px solid #00ff41' : '1px solid rgba(255,255,255,0.12)',
-                    cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
+                    color: '#000',
+                    background: '#00ff41',
+                    border: '1px solid #00ff41',
+                    cursor: 'default', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
                   }}
                 >
-                  VECTOR_01 {activeTestAttack.type.substring(0, 8)}
+                  {`VECTOR_${detailAttack.id ? detailAttack.id.slice(-2) : '01'} ${detailAttack.type?.substring(0, 8) || ''}`}
                 </button>
+              ) : (
+                <>
+                  {activeTestAttack && (
+                    <button
+                      onClick={() => onDetailView?.(activeTestAttack)}
+                      style={{
+                        padding: '12px 18px',
+                        color: activeTestAttack.id === attackToShow.id ? '#000' : '#fff',
+                        background: activeTestAttack.id === attackToShow.id ? '#00ff41' : 'rgba(255,255,255,0.08)',
+                        border: activeTestAttack.id === attackToShow.id ? '1px solid #00ff41' : '1px solid rgba(255,255,255,0.12)',
+                        cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
+                      }}
+                    >
+                      VECTOR_01 {activeTestAttack.type.substring(0, 8)}
+                    </button>
+                  )}
+                  {activeAttacks.map((attack, idx) => (
+                    <button
+                      key={attack.id}
+                      onClick={() => onDetailView?.(attack)}
+                      style={{
+                        padding: '12px 18px',
+                        color: attack.id === attackToShow.id ? '#000' : '#fff',
+                        background: attack.id === attackToShow.id ? '#00ff41' : 'rgba(255,255,255,0.08)',
+                        border: attack.id === attackToShow.id ? '1px solid #00ff41' : '1px solid rgba(255,255,255,0.12)',
+                        cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
+                      }}
+                    >
+                      VECTOR_{String(idx + 2).padStart(2, '0')} {attack.type.substring(0, 8)}
+                    </button>
+                  ))}
+                </>
               )}
-              {activeAttacks.map((attack, idx) => (
-                <button
-                  key={attack.id}
-                  onClick={() => onDetailView?.(attack)}
-                  style={{
-                    padding: '12px 18px',
-                    color: attack.id === attackToShow.id ? '#000' : '#fff',
-                    background: attack.id === attackToShow.id ? '#00ff41' : 'rgba(255,255,255,0.08)',
-                    border: attack.id === attackToShow.id ? '1px solid #00ff41' : '1px solid rgba(255,255,255,0.12)',
-                    cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
-                  }}
-                >
-                  VECTOR_{String(idx + 2).padStart(2, '0')} {attack.type.substring(0, 8)}
-                </button>
-              ))}
-              {((activeTestAttack && activeAttacks.length >= 1) || activeAttacks.length > 1) && (
-                <button
-                  onClick={() => setCurrentScreen('double_attack')}
-                  style={{
-                    padding: '12px 18px', color: '#00ff41', background: 'rgba(0,255,65,0.08)',
-                    border: '1px solid #00ff41', cursor: 'pointer', fontWeight: 'bold',
-                    letterSpacing: '1px', marginLeft: 'auto', whiteSpace: 'nowrap'
-                  }}
-                >
-                  MULTI DASHBOARD
-                </button>
-              )}
+              {/* Removed per-attack MULTI DASHBOARD button — Multi dashboard is accessible from Live Threats screen */}
             </div>
           )}
 
