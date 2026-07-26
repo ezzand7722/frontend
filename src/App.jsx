@@ -13,7 +13,7 @@ import ConfigModal from './components/ConfigModal';
 import LiveThreatsModule from './components/LiveThreatsModule';
 import { randomItem, generateRandomIP, createTestAttack, createDoubleAttackVectors, createLoopbackAttack } from './components/attackEngine';
 import { sfx } from './logic/SFXEngine';
-import { getActiveAttackCount, getCombinedActiveAttacks } from './logic/attackState';
+import { getActiveAttackCount, getCombinedActiveAttacks, splitPrimaryAndSecondaryAttacks } from './logic/attackState';
 
 import './App.css';
 import { initialHistoryData } from './data/attackData';
@@ -57,11 +57,16 @@ function App() {
   const [showMultiAttackDetail, setShowMultiAttackDetail] = useState(false);
   const [alertSuppressed, setAlertSuppressed] = useState(false);
   const [heuristicProgress, setHeuristicProgress] = useState(0);
-  const [historyList, setHistoryList] = useState(initialHistoryData);
+  const [historyList, setHistoryList] = useState(
+    initialHistoryData.filter(item => item.ip !== '127.0.0.1' && item.src_ip !== '127.0.0.1')
+  );
   const [liveLog, setLiveLog] = useState("SYSTEM_IDLE");
   const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "â†“ 0.0 KB/s | â†‘ 0.0 KB/s" });
 
   const [showLoopbackMenu, setShowLoopbackMenu] = useState(false);
+  const [showLoopbackSubMenu, setShowLoopbackSubMenu] = useState(false);
+  const [showMultiCountInput, setShowMultiCountInput] = useState(false);
+  const [multiAttackCount, setMultiAttackCount] = useState('3');
   const [showLogUpload, setShowLogUpload] = useState(false);
   const [lastAttackForAlert, setLastAttackForAlert] = useState(null); // Ù„ØªØªØ¨Ø¹ Ø¢Ø®Ø± Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¥Ù†Ø°Ø§Ø±
   const [alarmPlayedForSession, setAlarmPlayedForSession] = useState(false); // Ù„Ø¶Ù…Ø§Ù† ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙ‚Ø·
@@ -714,6 +719,12 @@ function App() {
     // Ù„Ø§ Ù†Ø´ØºÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù‡Ù†Ø§ - ÙÙ‚Ø· Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ ØªØ´ØºÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø±
   };
 
+  const normalizeMultiAttackCount = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 3;
+    return Math.min(10, Math.max(1, Math.floor(parsed)));
+  };
+
   const startDoubleAttack = () => {
     if (settings.shieldActive) {
       setLiveLog("ERROR: SHIELD_ACTIVE_BLOCKING_TEST");
@@ -722,12 +733,12 @@ function App() {
 
     const [attack1, attack2] = createDoubleAttackVectors();
     const startTime = Date.now();
+    const attackA = { ...attack1, startTime, duration: 40000 + Math.random() * 20000, progress: 0 };
+    const attackB = { ...attack2, startTime, duration: 40000 + Math.random() * 20000, progress: 0 };
     setSelectedAttackForDetail(null);
-    setActiveAttacksWrapper([
-      { ...attack1, startTime, duration: 40000 + Math.random() * 20000, progress: 0 },
-      { ...attack2, startTime, duration: 40000 + Math.random() * 20000, progress: 0 }
-    ]);
-    setLastAttackForAlert(attack1); // Ø­Ø¯Ø« Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„ÙŠÙ‚Ø±Ø£ Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰
+    setActiveTestAttack(attackA);
+    setActiveAttacksWrapper([attackB]);
+    setLastAttackForAlert(attackA); // Ø­Ø¯Ø« Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„ÙŠÙ‚Ø±Ø£ Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰
     setDoubleAttackMode(true);
     setIsAttacked(true);
     setShowOverlay(true);
@@ -744,7 +755,17 @@ function App() {
     if (!isAttacked || settings.shieldActive) return;
     const [attack1, attack2] = createDoubleAttackVectors();
     const now = Date.now();
-    setActiveAttacksWrapper(prev => [...prev, { ...attack1, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }, { ...attack2, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 }]);
+    const primaryAttack = activeTestAttack || { ...attack1, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 };
+    const secondaryAttack = { ...attack2, startTime: now, duration: 40000 + Math.random() * 20000, progress: 0 };
+    setActiveTestAttack(primaryAttack);
+    setActiveAttacksWrapper(prev => {
+      const next = [...prev];
+      if (primaryAttack && (!activeTestAttack || primaryAttack.id !== activeTestAttack.id)) {
+        next.push(primaryAttack);
+      }
+      next.push(secondaryAttack);
+      return next.filter((attack, index, arr) => attack && arr.findIndex(item => item?.id === attack.id) === index);
+    });
     setLastAttackForAlert(attack1); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -752,10 +773,9 @@ function App() {
     // Ù„Ø§ Ù†Ø´ØºÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù‡Ù†Ø§ - ÙÙ‚Ø· Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ ØªØ´ØºÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø±
   };
 
-  const startMultiAttack = () => {
+  const startMultiAttack = (countOverride) => {
     if (settings.shieldActive) { setLiveLog("ERROR: SHIELD_ACTIVE_BLOCKING_TEST"); return; }
-    const raw = window.prompt('Ø¹Ø¯Ø¯ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ù…Ø±Ø§Ø¯ ØªØ´ØºÙŠÙ„Ù‡Ø§ (1-10):', '3');
-    const count = Math.min(10, Math.max(1, Number(raw) || 1));
+    const count = normalizeMultiAttackCount(countOverride ?? multiAttackCount);
     const startTime = Date.now();
     const newAttacks = [];
     for (let i = 0; i < count; i++) {
@@ -763,7 +783,9 @@ function App() {
       newAttacks.push(a);
     }
 
-    setActiveAttacksWrapper(newAttacks);
+    const [primaryAttack, ...secondaryAttacks] = newAttacks;
+    setActiveTestAttack(primaryAttack);
+    setActiveAttacksWrapper(secondaryAttacks);
     setDoubleAttackMode(false);
     setIsAttacked(true);
     setShowOverlay(true);
@@ -772,15 +794,14 @@ function App() {
     setHeuristicProgress(0);
     isFinalizing.current = false;
     setCurrentScreen('main');
-    setLastAttackForAlert(newAttacks[0]); // Ø­Ø¯Ø« Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„ÙŠÙ‚Ø±Ø£ Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰
+    setLastAttackForAlert(primaryAttack); // Ø­Ø¯Ø« Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„ÙŠÙ‚Ø±Ø£ Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰
     setLiveLog(`ðŸ”´ MULTI_ATTACKS_INITIATED x${count}`);
   };
 
   // Ø¯Ø§Ù„Ø© Ø¬Ø¯ÙŠØ¯Ø©: Ø¥Ø¶Ø§ÙØ© multi attack Ø¬Ø¯ÙŠØ¯ Ø¨Ø¯ÙˆÙ† Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ø­Ø§Ù„ÙŠØ©
-  const addMultiVector = () => {
+  const addMultiVector = (countOverride) => {
     if (!isAttacked || settings.shieldActive) return;
-    const raw = window.prompt('Ø¹Ø¯Ø¯ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ø¥Ø¶Ø§ÙÙŠØ© (1-10):', '3');
-    const count = Math.min(10, Math.max(1, Number(raw) || 1));
+    const count = normalizeMultiAttackCount(countOverride ?? multiAttackCount);
     const addStartTime = Date.now();
     const newAttacks = [];
     for (let i = 0; i < count; i++) {
@@ -788,8 +809,14 @@ function App() {
       newAttacks.push(a);
     }
 
-    setActiveAttacksWrapper(prev => [...prev, ...newAttacks]);
-    setLastAttackForAlert(newAttacks[0]); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
+    const [primaryAttack, ...secondaryAttacks] = newAttacks;
+    if (!activeTestAttack) {
+      setActiveTestAttack(primaryAttack);
+      setActiveAttacksWrapper(secondaryAttacks);
+    } else {
+      setActiveAttacksWrapper(prev => [...prev, ...newAttacks]);
+    }
+    setLastAttackForAlert(primaryAttack); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
     setLiveLog(`ðŸ”´ NEW_ATTACKS_ADDED x${count}`);
@@ -820,7 +847,12 @@ function App() {
   const addLoopbackVector = (type) => {
     if (!isAttacked || settings.shieldActive) return;
     const lbAttack = { ...createLoopbackAttack(type), startTime: Date.now(), duration: 40000 + Math.random() * 20000, progress: 0 };
-    setActiveAttacksWrapper(prev => [...prev, lbAttack]);
+    if (!activeTestAttack) {
+      setActiveTestAttack(lbAttack);
+      setActiveAttacksWrapper([]);
+    } else {
+      setActiveAttacksWrapper(prev => [...prev, lbAttack]);
+    }
     setLastAttackForAlert(lbAttack); // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¹Ø±Ø¶ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† ØªØ´ØºÙŠÙ„ Ø¥Ù†Ø°Ø§Ø± Ø¬Ø¯ÙŠØ¯
     setShowOverlay(true);
     setCurrentScreen('main');
@@ -1056,31 +1088,66 @@ function App() {
 
               {showLoopbackMenu && (
                 <div className="loopback-selector-popup">
-                  <div className="popup-tag">// SELECT_INTERNAL_VECTOR</div>
-                  <button onClick={() => { isAttacked ? addLoopbackVector('BRUTE') : startLoopbackAttack('BRUTE'); setShowLoopbackMenu(false); }}>01_BRUTE_FORCE</button>
-                  <button onClick={() => { isAttacked ? addLoopbackVector('DDOS') : startLoopbackAttack('DDOS'); setShowLoopbackMenu(false); }}>02_DDoS_FLOOD</button>
-                  <button className="cancel-btn" onClick={() => setShowLoopbackMenu(false)}>CLOSE</button>
+                  <div className="popup-tag">// SELECT_ATTACK_VECTOR</div>
+                  <button onClick={() => { setShowLoopbackSubMenu(false); setShowMultiCountInput(false); setShowLoopbackMenu(false); if (isAttacked) { addNewVector(); } else { toggleAttack(); } }}>EXTERNAL_TEST</button>
+                  <button onClick={() => { setShowLoopbackSubMenu(false); setShowMultiCountInput(false); setShowLoopbackMenu(false); if (isAttacked) { addDoubleVector(); } else { startDoubleAttack(); } }}>DUAL_ATTACK</button>
+
+                  <button
+                    onClick={() => {
+                      setShowLoopbackSubMenu(prev => !prev);
+                      setShowMultiCountInput(false);
+                    }}
+                    className="menu-group-btn"
+                  >
+                    LOOPBACK_MODE
+                  </button>
+                  {showLoopbackSubMenu && (
+                    <div className="attack-submenu">
+                      <button onClick={() => { setShowLoopbackMenu(false); if (isAttacked) { addLoopbackVector('BRUTE'); } else { startLoopbackAttack('BRUTE'); } }}>01_BRUTE_FORCE</button>
+                      <button onClick={() => { setShowLoopbackMenu(false); if (isAttacked) { addLoopbackVector('DDOS'); } else { startLoopbackAttack('DDOS'); } }}>02_DDoS_FLOOD</button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowMultiCountInput(prev => !prev);
+                      setShowLoopbackSubMenu(false);
+                    }}
+                    className="menu-group-btn"
+                  >
+                    MULTI_ATTACK
+                  </button>
+                  {showMultiCountInput && (
+                    <div className="attack-submenu">
+                      <label className="submenu-label" htmlFor="multi-count">COUNT (1-10)</label>
+                      <input
+                        id="multi-count"
+                        className="attack-count-input"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={multiAttackCount}
+                        onChange={(e) => setMultiAttackCount(e.target.value)}
+                      />
+                      <button onClick={() => { setShowLoopbackMenu(false); if (isAttacked) { addMultiVector(multiAttackCount); } else { startMultiAttack(multiAttackCount); } }}>
+                        APPLY_MULTI
+                      </button>
+                    </div>
+                  )}
+
+                  <button className="cancel-btn" onClick={() => { setShowLoopbackMenu(false); setShowLoopbackSubMenu(false); setShowMultiCountInput(false); }}>CLOSE</button>
                 </div>
               )}
 
-              <button onClick={isAttacked ? addNewVector : toggleAttack} className="control-btn-pro">
-                {isAttacked ? "ADD_NEW_VECTOR" : "EXTERNAL_TEST"}
-              </button>
-
               <button
-                onClick={() => setShowLoopbackMenu(!showLoopbackMenu)}
-                disabled={false}
+                onClick={() => {
+                  setShowLoopbackMenu(prev => !prev);
+                  setShowLoopbackSubMenu(false);
+                  setShowMultiCountInput(false);
+                }}
                 className={`control-btn-pro loopback-btn ${showLoopbackMenu ? 'active' : ''}`}
               >
-                LOOPBACK_MODE
-              </button>
-
-              <button onClick={isAttacked ? addDoubleVector : startDoubleAttack} className="control-btn-pro dual-btn" style={{ opacity: 1 }}>
-                {isAttacked ? "ADD_DUAL_VECTOR" : "DUAL_ATTACK"}
-              </button>
-
-              <button onClick={isAttacked ? addMultiVector : startMultiAttack} className="control-btn-pro multi-btn" style={{ opacity: 1 }}>
-                {isAttacked ? "ADD_MULTI_VECTOR" : "MULTI_ATTACK"}
+                ATTACK_TEST
               </button>
 
               {!isAttacked && (
@@ -1137,10 +1204,14 @@ function App() {
             .pulse-red { animation: pulse-red-anim 1s infinite; }
             @keyframes pulse-red-anim { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
             
-            .loopback-selector-popup { background: rgba(0,0,0,0.95); border: 1px solid #ff00ff; padding: 10px; width: 220px; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 0 30px rgba(255,0,255,0.2); margin-bottom: 5px; }
+            .loopback-selector-popup { background: rgba(0,0,0,0.95); border: 1px solid #ff00ff; padding: 10px; width: 240px; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 0 30px rgba(255,0,255,0.2); margin-bottom: 5px; }
             .popup-tag { font-size: 9px; color: #ff00ff; opacity: 0.6; padding: 5px; border-bottom: 1px solid #ff00ff33; }
             .loopback-selector-popup button { background: transparent; border: 1px solid transparent; color: #ff00ff; padding: 10px; text-align: left; font-family: monospace; cursor: pointer; transition: 0.2s; }
             .loopback-selector-popup button:hover { background: rgba(255,0,255,0.1); border-color: #ff00ff; }
+            .menu-group-btn { font-weight: 700; }
+            .attack-submenu { display: flex; flex-direction: column; gap: 5px; padding: 4px 0 4px 10px; border-left: 1px solid #ff00ff33; }
+            .submenu-label { font-size: 9px; color: #ff00ff; opacity: 0.7; letter-spacing: 1px; }
+            .attack-count-input { background: rgba(255,0,255,0.08); border: 1px solid #ff00ff55; color: #fff; padding: 8px; font-family: monospace; }
             .cancel-btn { color: #666 !important; font-size: 10px !important; text-align: center !important; }
             .loopback-btn { border-color: #ff00ff !important; color: #ff00ff !important; background: transparent !important; }
             .loopback-btn:hover:not(:disabled), .loopback-btn.active { background: #ff00ff !important; color: #000 !important; }

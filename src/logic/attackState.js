@@ -19,5 +19,16 @@ export const getCombinedActiveAttacks = ({ activeTestAttack, activeAttacks = [] 
   return attacks;
 };
 
+export const splitPrimaryAndSecondaryAttacks = ({ activeTestAttack, activeAttacks = [] }) => {
+  const normalizedAttacks = Array.isArray(activeAttacks) ? activeAttacks.filter(Boolean) : [];
+  const primaryAttack = activeTestAttack && activeTestAttack.id ? activeTestAttack : normalizedAttacks[0] || null;
+  const secondaryAttacks = normalizedAttacks.filter((attack) => !primaryAttack || !attack || !attack.id || attack.id !== primaryAttack.id);
+
+  return {
+    primaryAttack,
+    secondaryAttacks,
+  };
+};
+
 export const getActiveAttackCount = ({ activeTestAttack, activeAttacks = [] }) =>
   getCombinedActiveAttacks({ activeTestAttack, activeAttacks }).length;
