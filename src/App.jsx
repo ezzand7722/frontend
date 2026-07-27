@@ -238,8 +238,6 @@ function App() {
 
             // We removed the token-duplicate check so that repeated uploads of the exact same test file
             // will always trigger the active attack sirens on the dashboard instead of being silently ignored.
-            // if (!initialPoll && prevToken === token) return;
-            seenAlertToken.current.set(alertId, token);
 
             const dateStr = Number.isFinite(receivedAtMs)
               ? new Date(receivedAtMs).toISOString().replace('T', ' ').split('.')[0]
