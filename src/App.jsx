@@ -159,6 +159,7 @@ function App() {
   // --- CONNECT TO REAL BACKEND API ---
   const fetchBackendAlertsRef = useRef(null);
   const seenAlertToken = useRef(new Map());
+  const discardedAlertIds = useRef(new Set());
   const isFirstPoll = useRef(true); // First poll is silent â€” just records existing IDs
   const alertsFetchInFlight = useRef(false);
   const debugRef = useRef({ lastOkAt: null, lastError: null, lastStatus: null, lastBackendUrl: null, lastAlertsCount: null });
@@ -219,7 +220,12 @@ function App() {
           data.alerts.length > 0;
 
         if (data.status === "success" && data.alerts && data.alerts.length > 0) {
-          data.alerts.forEach(alert => {
+
+            const freshAlerts = data.alerts.filter(alert => { const utcRa = alert.received_at; const alertId = `${alert.src_ip}-${alert.attack_type}-${utcRa}`; return !discardedAlertIds.current.has(alertId); });
+
+            if (freshAlerts.length > 0) {
+
+              freshAlerts.forEach(alert => {
             const alertId = alert.attack_id || alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type);
 
             const receivedAtRaw = alert.first_seen || alert?.details?.received_at;
@@ -308,10 +314,7 @@ function App() {
               country: 'UN',
               threat: '99%',
               severity: alert.details?.severity || '99%',
-              coords: { 
-                lat: (Math.random() * 100 - 50), 
-                lng: (Math.random() * 200 - 100) 
-              },
+              coords: { lat: -50 + ((alert.src_ip ? alert.src_ip.split(".").reduce((a,b)=>a+(parseInt(b,10)||0),0) : 0) % 100), lng: -100 + (((alert.src_ip ? alert.src_ip.split(".").reduce((a,b)=>a+(parseInt(b,10)||0),0) : 0) * 7) % 200) },
               status: 'DETECTED',
               packetSize: '1500 MTU',
               isp: 'Unknown',
@@ -375,6 +378,7 @@ function App() {
                 return currTest;
               }
             });
+          }
           });
         }
       } catch (err) {
@@ -528,6 +532,9 @@ function App() {
       activeAttacks.forEach(attack => savedAttacks.push({ ...attack, status: 'MITIGATED' }));
     }
     if (activeTestAttack && !activeAttacks.some(a => a.id === activeTestAttack.id)) {
+
+        discardedAlertIds.current.add(activeTestAttack.id);
+
       savedAttacks.push({ ...activeTestAttack, status: 'MITIGATED' });
     }
 
@@ -612,6 +619,9 @@ function App() {
 
           const remaining = updated.filter(attack => {
             if ((attack.progress || 0) >= 100) {
+
+                discardedAlertIds.current.add(attack.id);
+
               addToHistory({ ...attack, status: 'MITIGATED' });
               return false;
             }
@@ -1073,7 +1083,7 @@ function App() {
           {activeModule === 'history' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all', background: '#020b02' }}>
               <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
-              <HistoryModule historyList={historyList} onClearHistory={() => setHistoryList([])} />
+              <HistoryModule historyList={historyList} onClearHistory={() => { historyList.forEach(a => discardedAlertIds.current.add(a.id)); setHistoryList([]); }} />
             </div>
           )}
 
