@@ -352,6 +352,7 @@ const AttackOverlay = ({
                   OPEN VECTOR_01 DETAILS
                 </button>
               </div>
+            )}
           </div>
 
         </div>
