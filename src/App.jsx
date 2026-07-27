@@ -17,7 +17,7 @@ import { sfx } from './logic/SFXEngine';
 import { getActiveAttackCount, getCombinedActiveAttacks, splitPrimaryAndSecondaryAttacks } from './logic/attackState';
 
 import './App.css';
-import { initialHistoryData } from './data/attackData';
+import { initialHistoryData, GEO_POOL } from './data/attackData';
 
 const menuItems = [
   { id: 'live', label: 'LIVE THREATS', Component: Icons.Live },
@@ -299,6 +299,11 @@ function App() {
             console.log('Final Mapped eventTimeline:', timeline);
             console.groupEnd();
 
+            const seed = alert.src_ip ? alert.src_ip.split(".").reduce((a,b)=>a+(parseInt(b,10)||0),0) : 0;
+            const geo = GEO_POOL[seed % GEO_POOL.length] || { loc: 'Unknown, UN', lat: 0, lng: 0 };
+            const severityVal = alert.details?.severity || alert.severity || 'high';
+            const severityStr = severityVal.toUpperCase();
+
             const mappedAttack = {
               id: alertId,
               date: dateStr,
@@ -309,12 +314,12 @@ function App() {
               src_ip: alert.src_ip || 'Unknown',
               port: alert.dest_port || 0,
               proto: alert.protocol || 'TCP',
-              loc: 'Unknown, UN',
-              city: 'Unknown',
-              country: 'UN',
-              threat: '99%',
-              severity: alert.details?.severity || '99%',
-              coords: { lat: -50 + ((alert.src_ip ? alert.src_ip.split(".").reduce((a,b)=>a+(parseInt(b,10)||0),0) : 0) % 100), lng: -100 + (((alert.src_ip ? alert.src_ip.split(".").reduce((a,b)=>a+(parseInt(b,10)||0),0) : 0) * 7) % 200) },
+              loc: geo.loc,
+              city: geo.loc.split(',')[0] || 'Unknown',
+              country: geo.loc.split(',')[1]?.trim() || 'UN',
+              threat: severityStr,
+              severity: severityStr,
+              coords: { lat: geo.lat, lng: geo.lng },
               status: 'DETECTED',
               packetSize: '1500 MTU',
               isp: 'Unknown',
@@ -970,6 +975,7 @@ function App() {
             <div className="scanline"></div>
             <LiveMap
               isAttacked={isAttacked && currentScreen === 'main'}
+              attackerData={activeTestAttack}
               attackerCoords={activeTestAttack?.coords}
               activeAttacks={activeAttacks}
               onNodeClick={handleNodeClick}
