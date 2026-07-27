@@ -378,9 +378,10 @@ function App() {
                 return currTest;
               }
             });
-          }
+          });
         }
-      } catch (err) {
+      }
+    } catch (err) {
         const msg = `[honeypot] alerts fetch exception: ${err?.message || String(err)}`;
         debugRef.current.lastError = msg;
         try {
