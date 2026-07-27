@@ -228,16 +228,9 @@ function App() {
             const lastSeenSeconds = Number(alert.last_seen ?? alert.timestamp ?? alert.first_seen ?? 0) || 0;
             const instanceCount = Number(alert.instance_count ?? 0) || 0;
 
-            // Token changes when the backend ingests new events for the same AGG id
-            const token = String(
-              Number.isFinite(receivedAtMs)
-                ? receivedAtMs
-                : (receivedAtIso || '')
-            ) + '|' + String(instanceCount);
-            const prevToken = seenAlertToken.current.get(alertId);
-
-            // Skip duplicates after initial load
-            if (!initialPoll && prevToken === token) return;
+            // We removed the token-duplicate check so that repeated uploads of the exact same test file
+            // will always trigger the active attack sirens on the dashboard instead of being silently ignored.
+            // if (!initialPoll && prevToken === token) return;
             seenAlertToken.current.set(alertId, token);
 
             const dateStr = Number.isFinite(receivedAtMs)
