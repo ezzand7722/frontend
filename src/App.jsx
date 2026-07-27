@@ -333,17 +333,9 @@ function App() {
               eventTimeline: timeline
             };
             
-            const isRecent = Number.isFinite(receivedAtMs) && Math.abs(nowMs - receivedAtMs) <= 90_000;
-            
-            // Only suppress parsing into Active Attacks if it's the very first page load AND the attack is old.
-            // But we always allow it to be pushed if we are live testing (polling)!
-            if (initialPoll && !isRecent) {
-                addToHistory({ ...mappedAttack, status: 'MITIGATED' });
-                fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
-                  if (d?.stats) setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
-                }).catch(()=>{});
-                return;
-            }
+            // We commented out the isRecent check so that testing with old logs (like from March 2026) 
+            // will still trigger the active attack overlay even if you refresh the page.
+            // if (initialPoll && !isRecent) { ... }
 
             setActiveTestAttack(currTest => {
               if (!currTest || currTest.id === mappedAttack.id) {
