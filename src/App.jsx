@@ -225,9 +225,9 @@ function App() {
 
         if (data.status === "success" && data.alerts && data.alerts.length > 0) {
           data.alerts.forEach(alert => {
-            const alertId = alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type);
+            const alertId = alert.attack_id || alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type);
 
-            const receivedAtIso = alert?.details?.received_at;
+            const receivedAtIso = alert.first_seen || alert?.details?.received_at;
             const utcRa = receivedAtIso ? (receivedAtIso.endsWith('Z') ? receivedAtIso : receivedAtIso + 'Z') : '';
             const receivedAtMs = utcRa ? Date.parse(utcRa) : NaN;
             const lastSeenSeconds = Number(alert.last_seen ?? alert.timestamp ?? alert.first_seen ?? 0) || 0;
@@ -254,9 +254,11 @@ function App() {
             const timeline = [];
             const timeStr = dateStr.split(' ')[1] || "00:00:00";
             const targetPort = alert.dest_port || alert.details?.dest_port || "Unknown";
+            
+            const pipelineData = alert.pipeline || alert.details?.pipeline;
 
-            if (alert.details?.pipeline && Array.isArray(alert.details.pipeline) && alert.details.pipeline.length > 0) {
-                alert.details.pipeline.forEach(item => {
+            if (pipelineData && Array.isArray(pipelineData) && pipelineData.length > 0) {
+                pipelineData.forEach(item => {
                     let status = 'success';
                     const eventName = item.event || '';
                     if (eventName.includes('ATTACK') || eventName.includes('ALERT') || eventName.includes('HIGH') || eventName.includes('DETECTED') || eventName.includes('SEVERITY')) {
@@ -343,12 +345,19 @@ function App() {
                 return;
             }
 
-            setActiveAttacksWrapper(prev => {
-              const next = prev.filter(a => a.id !== mappedAttack.id);
-              return [{ ...mappedAttack, timestamp: new Date().toLocaleTimeString() }, ...next];
+            setActiveTestAttack(currTest => {
+              if (!currTest || currTest.id === mappedAttack.id) {
+                return mappedAttack;
+              } else {
+                setActiveAttacksWrapper(prev => {
+                  const next = prev.filter(a => a.id !== mappedAttack.id);
+                  return [{ ...mappedAttack, timestamp: new Date().toLocaleTimeString() }, ...next];
+                });
+                return currTest;
+              }
             });
+
             if (!initialPoll) addToHistory(mappedAttack);
-            setActiveTestAttack(mappedAttack);
             setLastAttackForAlert(mappedAttack);
             
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
