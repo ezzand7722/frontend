@@ -375,15 +375,6 @@ function App() {
                 return currTest;
               }
             });
-
-
-            if (!isAttacked) {
-              setIsAttacked(true);
-              setAlarmPlayedForSession(false); // Ø£Ø¹Ø¯ ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„Ø¬Ù„Ø³Ø© Ø§Ù„Ù‡Ø¬Ù…Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©
-            }
-
-            // Make new backend alerts visible immediately.
-            if (!initialPoll) setShowOverlay(true);
           });
         }
       } catch (err) {
