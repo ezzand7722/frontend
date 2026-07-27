@@ -221,7 +221,7 @@ function App() {
 
         if (data.status === "success" && data.alerts && data.alerts.length > 0) {
 
-            const freshAlerts = data.alerts.filter(alert => { const utcRa = alert.received_at; const alertId = `${alert.src_ip}-${alert.attack_type}-${utcRa}`; return !discardedAlertIds.current.has(alertId); });
+            const freshAlerts = data.alerts.filter(alert => { const alertId = alert.attack_id || alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type); return !discardedAlertIds.current.has(alertId); });
 
             if (freshAlerts.length > 0) {
 
