@@ -379,7 +379,6 @@ function App() {
               }
             });
           }
-          });
         }
       } catch (err) {
         const msg = `[honeypot] alerts fetch exception: ${err?.message || String(err)}`;
