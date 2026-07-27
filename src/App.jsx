@@ -327,25 +327,21 @@ function App() {
               eventTimeline: timeline
             };
             
-            // We commented out the isRecent check so that testing with old logs (like from March 2026) 
-            // will still trigger the active attack overlay even if you refresh the page.
-            // if (initialPoll && !isRecent) { ... }
-
-            setActiveTestAttack(currTest => {
-              if (!currTest || currTest.id === mappedAttack.id) {
-                return mappedAttack;
-              } else {
-                setActiveAttacksWrapper(prev => {
-                  const next = prev.filter(a => a.id !== mappedAttack.id);
-                  return [{ ...mappedAttack, timestamp: new Date().toLocaleTimeString() }, ...next];
-                });
-                return currTest;
-              }
-            });
-
             if (!initialPoll) addToHistory(mappedAttack);
-            setLastAttackForAlert(mappedAttack);
-            
+              
+            if (!seenAlertToken.current.has(alertId)) {
+              seenAlertToken.current.set(alertId, true);
+              setLastAttackForAlert(mappedAttack);
+
+              if (!isAttacked) {
+                setIsAttacked(true);
+                setAlarmPlayedForSession(false);
+              }
+
+              // Make new backend alerts visible immediately.
+              if (!initialPoll) setShowOverlay(true);
+            }
+
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
               if (d?.stats) {
                 setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
@@ -353,6 +349,20 @@ function App() {
                 setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
               }
             }).catch(()=>{});
+            
+            setActiveTestAttack(currTest => {
+              if (!currTest || currTest.id === mappedAttack.id) {
+                return { ...currTest, ...mappedAttack, startTime: currTest?.startTime, duration: currTest?.duration, progress: currTest?.progress };
+              } else {
+                setActiveAttacksWrapper(prev => {
+                  const next = prev.filter(a => a.id !== mappedAttack.id);
+                  const existing = prev.find(a => a.id === mappedAttack.id);
+                  return [{ ...existing, ...mappedAttack, timestamp: new Date().toLocaleTimeString(), startTime: existing?.startTime, duration: existing?.duration, progress: existing?.progress }, ...next];
+                });
+                return currTest;
+              }
+            });
+
 
             if (!isAttacked) {
               setIsAttacked(true);
@@ -360,7 +370,7 @@ function App() {
             }
 
             // Make new backend alerts visible immediately.
-            if (!initialPoll || shouldShowOverlayOnInitial) setShowOverlay(true);
+            if (!initialPoll) setShowOverlay(true);
           });
         }
       } catch (err) {
