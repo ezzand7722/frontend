@@ -216,12 +216,7 @@ function App() {
         const shouldShowOverlayOnInitial =
           initialPoll &&
           Array.isArray(data?.alerts) &&
-          data.alerts.some(a => {
-            const ra = a?.details?.received_at;
-            const utcRa = ra ? (ra.endsWith('Z') ? ra : ra + 'Z') : '';
-            const ms = utcRa ? Date.parse(utcRa) : NaN;
-            return Number.isFinite(ms) && Math.abs(nowMs - ms) <= 90_000;
-          });
+          data.alerts.length > 0;
 
         if (data.status === "success" && data.alerts && data.alerts.length > 0) {
           data.alerts.forEach(alert => {
