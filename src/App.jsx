@@ -1076,14 +1076,14 @@ function App() {
           )}
 
           {activeModule === 'config' && (
-            <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
+            <div key="config" className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
               <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
               <ConfigModal settings={settings} setSettings={setSettings} activeTab={activeTab} setActiveTab={setActiveTab} />
             </div>
           )}
 
           {activeModule === 'raw_ai' && (
-            <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
+            <div key="raw_ai" className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
               <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
               <RawAIModule />
             </div>
