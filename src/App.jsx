@@ -222,9 +222,17 @@ function App() {
           data.alerts.forEach(alert => {
             const alertId = alert.attack_id || alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type);
 
-            const receivedAtIso = alert.first_seen || alert?.details?.received_at;
-            const utcRa = receivedAtIso ? (receivedAtIso.endsWith('Z') ? receivedAtIso : receivedAtIso + 'Z') : '';
-            const receivedAtMs = utcRa ? Date.parse(utcRa) : NaN;
+            const receivedAtRaw = alert.first_seen || alert?.details?.received_at;
+            let receivedAtMs = NaN;
+            let utcRa = '';
+            
+            if (typeof receivedAtRaw === 'number') {
+                receivedAtMs = receivedAtRaw * (receivedAtRaw < 1e12 ? 1000 : 1);
+                utcRa = new Date(receivedAtMs).toISOString();
+            } else if (typeof receivedAtRaw === 'string') {
+                utcRa = receivedAtRaw.endsWith('Z') ? receivedAtRaw : receivedAtRaw + 'Z';
+                receivedAtMs = Date.parse(utcRa);
+            }
             const lastSeenSeconds = Number(alert.last_seen ?? alert.timestamp ?? alert.first_seen ?? 0) || 0;
             const instanceCount = Number(alert.instance_count ?? 0) || 0;
 
