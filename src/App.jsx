@@ -645,7 +645,7 @@ function App() {
 
       const avgProgress = attackCount > 0 ? totalProgress / attackCount : 0;
       setHeuristicProgress(avgProgress);
-    }, 500);
+    }, 100);
 
     return () => clearInterval(progressInterval);
   }, [isAttacked, activeTestAttack, activeAttacks, settings.scanSpeed, settings.autoMitigation]);
