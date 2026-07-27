@@ -218,6 +218,7 @@ const AttackOverlay = ({
             pointerEvents: 'none', animation: 'pulse-red-bg 1s infinite'
           }}></div>
           <div className="full-screen-alert" style={{ cursor: 'default' }}>
+            <button className="close-btn-lg" onClick={handleHardClose} style={{ zIndex: 10005 }}>×</button>
             <div className="alert-content">
               <div className="alert-header" style={{ letterSpacing: '5px' }}>
                 {" >>> CRITICAL_SYSTEM_BREACH <<< "}
