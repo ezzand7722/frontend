@@ -352,12 +352,25 @@ function App() {
             
             setActiveTestAttack(currTest => {
               if (!currTest || currTest.id === mappedAttack.id) {
-                return { ...currTest, ...mappedAttack, startTime: currTest?.startTime, duration: currTest?.duration, progress: currTest?.progress };
+                return { 
+                  ...mappedAttack, 
+                  ...(currTest || {}), 
+                  startTime: currTest?.startTime ?? mappedAttack.startTime, 
+                  duration: currTest?.duration ?? mappedAttack.duration, 
+                  progress: currTest?.progress ?? mappedAttack.progress 
+                };
               } else {
                 setActiveAttacksWrapper(prev => {
                   const next = prev.filter(a => a.id !== mappedAttack.id);
                   const existing = prev.find(a => a.id === mappedAttack.id);
-                  return [{ ...existing, ...mappedAttack, timestamp: new Date().toLocaleTimeString(), startTime: existing?.startTime, duration: existing?.duration, progress: existing?.progress }, ...next];
+                  return [{ 
+                    ...mappedAttack, 
+                    ...(existing || {}), 
+                    timestamp: new Date().toLocaleTimeString(), 
+                    startTime: existing?.startTime ?? mappedAttack.startTime, 
+                    duration: existing?.duration ?? mappedAttack.duration, 
+                    progress: existing?.progress ?? mappedAttack.progress 
+                  }, ...next];
                 });
                 return currTest;
               }
