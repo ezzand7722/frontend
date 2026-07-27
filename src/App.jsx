@@ -319,7 +319,7 @@ function App() {
               livePayload: 'Backend Log',
               detail: JSON.stringify(alert.details || {}),
               last_seen: lastSeenSeconds,
-              received_at: receivedAtIso || null,
+              received_at: utcRa || null,
               instance_count: instanceCount,
               startTime: Date.now(),
               duration: 60000 + Math.random() * 30000,
