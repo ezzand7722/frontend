@@ -5,8 +5,8 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
   const [selectedHistory, setSelectedHistory] = useState(null);
 
   const titleText = selectedHistory 
-    ? `DEEP_LOG_ANALYSIS_${selectedHistory.id}` 
-    : "ATTACK_HISTORY_ARCHIVE_V4.0";
+    ? `INCIDENT REPORT — ${selectedHistory.date || selectedHistory.timestamp || 'UNKNOWN'}` 
+    : "ATTACK HISTORY ARCHIVE";
 
   return (
     <div className="history-module-container" style={{ 
@@ -67,11 +67,7 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
               {titleText}
             </h2>
             
-            {selectedHistory && (
-              <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '5px', letterSpacing: '1px' }}>
-                &gt; STATUS: ENCRYPTED_DATABASE_ACCESS_GRANTED
-              </div>
-            )}
+
           </div>
         </div>
 
@@ -109,7 +105,7 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
             </button>
           )}
 
-          {selectedHistory && <span className="blink-red" style={{ fontSize: '18px' }}>!! SECURE_LOG_ACCESS !!</span>}
+          {selectedHistory && <span style={{ fontSize: '14px', color: '#00ff41', opacity: 0.7 }}>INCIDENT DETAILS</span>}
         </div>
       </div>
 
@@ -207,7 +203,7 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
                 />
               </div>
               <div style={{ position: 'absolute', top: '20px', left: '20px', fontSize: '12px', background: 'rgba(0,10,0,0.85)', padding: '10px 15px', borderLeft: '3px solid #ffaa00' }}>
-                GEOGRAPHIC_LOCK: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{selectedHistory.loc.toUpperCase()}</span>
+                ATTACK ORIGIN: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{(selectedHistory.loc || selectedHistory.city || 'Unknown').toUpperCase()}</span>
               </div>
             </div>
 
@@ -227,14 +223,14 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
                   <tbody>
                     {[
                       ['SOURCE_IP (src_ip)', selectedHistory.ip || selectedHistory.src_ip, '#ffaa00'],
-                      ['NETWORK_ISP', 'GLOBAL_BACKBONE_TRACED', ''],
+                      ['NETWORK_ISP', selectedHistory.isp || 'Unknown', ''],
                       ['PROTOCOL', selectedHistory.proto || 'UDP', ''],
-                      ['LOCATION', selectedHistory.loc.toUpperCase(), ''],
+                      ['LOCATION', (selectedHistory.loc || selectedHistory.city || 'Unknown').toUpperCase(), ''],
                       ['TARGET_PORT', selectedHistory.port || '37777', ''],
                       ['ATTACK_TYPE', selectedHistory.attack_type || selectedHistory.type, '#ff9900'],
                       ['THREAT_LEVEL (severity)', `${selectedHistory.threat || selectedHistory.severity}`, '#ff0000'],
                       ['COORDINATES', `${selectedHistory.coords?.lat}, ${selectedHistory.coords?.lng}`, ''],
-                      ['AI_MITIGATION', 'COMPLETE_NEUTRALIZATION', '#00ff41']
+                      ['AI_MITIGATION', selectedHistory.status || 'LOGGED', '#00ff41']
                     ].map(([label, value, color], i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
                         <td style={{ padding: '12px 0', opacity: 0.5, fontSize: '12px' }}>{label}</td>

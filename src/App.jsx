@@ -59,7 +59,7 @@ function App() {
   const [showMultiAttackDetail, setShowMultiAttackDetail] = useState(false);
   const [alertSuppressed, setAlertSuppressed] = useState(false);
   const [heuristicProgress, setHeuristicProgress] = useState(0);
-  const [historyList, setHistoryList] = useState([]);
+  const [historyList, setHistoryList] = useState([...initialHistoryData]);
   const [liveLog, setLiveLog] = useState("SYSTEM_IDLE");
   const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "↓ 0.0 KB/s | ↑ 0.0 KB/s" });
 
@@ -92,12 +92,12 @@ function App() {
   const addToHistory = useCallback((attack) => {
     if (!attack || !attack.id) return;
     setHistoryList(prev => {
-      const nonMock = prev.filter(item => !item.id.startsWith('EV-9901') && !item.id.startsWith('EV-8842') && !item.id.startsWith('EV-7721') && !item.id.startsWith('EV-6610') && !item.id.startsWith('EV-5509'));
-      const exists = nonMock.find(item => item.id === attack.id);
+      const exists = prev.find(item => item.id === attack.id);
       if (exists) {
-        return nonMock.map(item => item.id === attack.id ? { ...item, ...attack } : item);
+        // Update existing record in place (e.g. status change to MITIGATED)
+        return prev.map(item => item.id === attack.id ? { ...item, ...attack } : item);
       }
-      return [{ ...attack, timestamp: new Date().toLocaleTimeString() }, ...nonMock];
+      return [{ ...attack, timestamp: new Date().toLocaleTimeString() }, ...prev];
     });
   }, []);
 
@@ -338,15 +338,15 @@ function App() {
               
             if (!seenAlertToken.current.has(alertId)) {
               seenAlertToken.current.set(alertId, true);
-              setLastAttackForAlert(mappedAttack);
 
-              if (!isAttacked) {
-                setIsAttacked(true);
-                setAlarmPlayedForSession(false);
+              if (!initialPoll) {
+                setLastAttackForAlert(mappedAttack);
+                if (!isAttacked) {
+                  setIsAttacked(true);
+                  setAlarmPlayedForSession(false);
+                }
+                setShowOverlay(true);
               }
-
-              // Make new backend alerts visible immediately.
-              if (!initialPoll) setShowOverlay(true);
             }
 
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
@@ -1097,7 +1097,7 @@ function App() {
           {activeModule === 'analysis' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all' }}>
               <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
-              <AnalysisScreen onClose={() => setActiveModule(null)} isAttacked={isAttacked} activeAttack={activeTestAttack || (historyList.length > 0 ? historyList[0] : null)} activeAttacks={activeAttacks} settings={settings} />
+              <AnalysisScreen onClose={() => setActiveModule(null)} isAttacked={isAttacked} activeAttack={activeTestAttack || null} activeAttacks={activeAttacks} settings={settings} />
             </div>
           )}
 
