@@ -227,7 +227,7 @@ function App() {
               freshAlerts.forEach(alert => {
             const alertId = alert.attack_id || alert.id || ('EV-' + alert.src_ip + '-' + alert.attack_type);
 
-            const receivedAtRaw = alert.first_seen || alert?.details?.received_at;
+            const receivedAtRaw = alert.ingested_at || alert?.details?.received_at || alert.first_seen;
             let receivedAtMs = NaN;
             let utcRa = '';
             
