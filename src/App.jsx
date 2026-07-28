@@ -336,7 +336,9 @@ function App() {
             
             addToHistory(mappedAttack);
               
-            if (!seenAlertToken.current.has(alertId)) {
+            const isNewAlert = !seenAlertToken.current.has(alertId);
+            
+            if (isNewAlert) {
               seenAlertToken.current.set(alertId, true);
 
               if (!initialPoll) {
@@ -349,45 +351,50 @@ function App() {
               }
             }
 
-            if (!initialPoll) {
-              fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
-                if (d?.stats) {
-                  setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
-                  setActiveTestAttack(currTest => currTest?.id === mappedAttack.id ? { ...currTest, ...d.stats } : currTest);
-                }
-              }).catch(()=>{});
-            }
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
               if (d?.stats) {
                 setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
               }
             }).catch(()=>{});
             
-            if (!initialPoll) {
+            if (!initialPoll && !discardedAlertIds.current.has(alertId)) {
               setActiveTestAttack(currTest => {
-                if (!currTest || currTest.id === mappedAttack.id) {
-                  return { 
-                    ...mappedAttack, 
-                    ...(currTest || {}), 
-                    startTime: currTest?.startTime ?? mappedAttack.startTime, 
-                    duration: currTest?.duration ?? mappedAttack.duration, 
-                    progress: currTest?.progress ?? mappedAttack.progress 
-                  };
-                } else {
-                  setActiveAttacksWrapper(prev => {
-                    const next = prev.filter(a => a.id !== mappedAttack.id);
-                    const existing = prev.find(a => a.id === mappedAttack.id);
-                    return [{ 
+                const isCurrentlyActive = (currTest && currTest.id === alertId) || activeAttacks.some(a => a.id === alertId);
+                
+                if (isNewAlert || isCurrentlyActive) {
+                  // Fetch stats and update active lists
+                  fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
+                    if (d?.stats) {
+                      setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
+                      setActiveTestAttack(currT => currT?.id === mappedAttack.id ? { ...currT, ...d.stats } : currT);
+                    }
+                  }).catch(()=>{});
+
+                  if (!currTest || currTest.id === mappedAttack.id) {
+                    return { 
                       ...mappedAttack, 
-                      ...(existing || {}), 
-                      timestamp: new Date().toLocaleTimeString(), 
-                      startTime: existing?.startTime ?? mappedAttack.startTime, 
-                      duration: existing?.duration ?? mappedAttack.duration, 
-                      progress: existing?.progress ?? mappedAttack.progress 
-                    }, ...next];
-                  });
-                  return currTest;
+                      ...(currTest || {}), 
+                      startTime: currTest?.startTime ?? mappedAttack.startTime, 
+                      duration: currTest?.duration ?? mappedAttack.duration, 
+                      progress: currTest?.progress ?? mappedAttack.progress 
+                    };
+                  } else {
+                    setActiveAttacksWrapper(prev => {
+                      const next = prev.filter(a => a.id !== mappedAttack.id);
+                      const existing = prev.find(a => a.id === mappedAttack.id);
+                      return [{ 
+                        ...mappedAttack, 
+                        ...(existing || {}), 
+                        timestamp: new Date().toLocaleTimeString(), 
+                        startTime: existing?.startTime ?? mappedAttack.startTime, 
+                        duration: existing?.duration ?? mappedAttack.duration, 
+                        progress: existing?.progress ?? mappedAttack.progress 
+                      }, ...next];
+                    });
+                    return currTest;
+                  }
                 }
+                return currTest;
               });
             }
           });
