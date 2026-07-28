@@ -241,6 +241,21 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
                   </tbody>
                 </table>
 
+                {selectedHistory.commands_used && selectedHistory.commands_used.length > 0 && (
+                  <>
+                    <h4 style={{ color: '#ffaa00', margin: '30px 0 15px 0', borderBottom: '1px solid rgba(255,170,0,0.3)', paddingBottom: '10px' }}>
+                      // EXECUTED_COMMANDS
+                    </h4>
+                    <div style={{ background: 'rgba(255, 170, 0, 0.05)', padding: '15px', border: '1px solid rgba(255,170,0,0.2)', maxHeight: '200px', overflowY: 'auto' }} className="custom-scroll">
+                      {selectedHistory.commands_used.map((cmd, i) => (
+                        <div key={i} style={{ fontFamily: 'monospace', color: '#fff', fontSize: '12px', marginBottom: '8px', wordBreak: 'break-all' }}>
+                          <span style={{ color: '#ffaa00', marginRight: '8px' }}>&gt;</span>{cmd}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 <h4 style={{ color: '#00ff41', margin: '30px 0 15px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '10px' }}>
                   // ATTACK_STATISTICS
                 </h4>
