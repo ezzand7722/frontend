@@ -348,6 +348,12 @@ function App() {
             if (isNewAlert) {
               seenAlertToken.current.set(alertId, true);
 
+              fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
+                if (d?.stats) {
+                  setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
+                }
+              }).catch(()=>{});
+
               if (!initialPoll) {
                 setLastAttackForAlert(mappedAttack);
                 if (!isAttacked) {
@@ -357,12 +363,6 @@ function App() {
                 setShowOverlay(true);
               }
             }
-
-            fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
-              if (d?.stats) {
-                setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
-              }
-            }).catch(()=>{});
             
             if (!initialPoll && !discardedAlertIds.current.has(alertId)) {
               setActiveTestAttack(currTest => {
@@ -447,8 +447,8 @@ function App() {
       if (fetchBackendAlertsRef.current) fetchBackendAlertsRef.current();
     }
     fetchWrapper();
-    // Faster polling so replayed logs show up quickly.
-    const interval = setInterval(fetchWrapper, 250);
+    // Optimized polling interval to prevent server/proxy overload
+    const interval = setInterval(fetchWrapper, 2000);
     return () => clearInterval(interval);
   }, []);
 
