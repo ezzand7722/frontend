@@ -349,39 +349,47 @@ function App() {
               }
             }
 
+            if (!initialPoll) {
+              fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
+                if (d?.stats) {
+                  setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
+                  setActiveTestAttack(currTest => currTest?.id === mappedAttack.id ? { ...currTest, ...d.stats } : currTest);
+                }
+              }).catch(()=>{});
+            }
             fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/report/attacker-stats?src_ip=${alert.src_ip}`).then(r => r.json()).then(d => {
               if (d?.stats) {
-                setActiveAttacksWrapper(curr => curr.map(a => a.id === mappedAttack.id ? { ...a, ...d.stats } : a));
-                setActiveTestAttack(curr => curr?.id === mappedAttack.id ? { ...curr, ...d.stats } : curr);
                 setHistoryList(curr => curr.map(h => h.id === mappedAttack.id ? { ...h, ...d.stats } : h));
               }
             }).catch(()=>{});
             
-            setActiveTestAttack(currTest => {
-              if (!currTest || currTest.id === mappedAttack.id) {
-                return { 
-                  ...mappedAttack, 
-                  ...(currTest || {}), 
-                  startTime: currTest?.startTime ?? mappedAttack.startTime, 
-                  duration: currTest?.duration ?? mappedAttack.duration, 
-                  progress: currTest?.progress ?? mappedAttack.progress 
-                };
-              } else {
-                setActiveAttacksWrapper(prev => {
-                  const next = prev.filter(a => a.id !== mappedAttack.id);
-                  const existing = prev.find(a => a.id === mappedAttack.id);
-                  return [{ 
+            if (!initialPoll) {
+              setActiveTestAttack(currTest => {
+                if (!currTest || currTest.id === mappedAttack.id) {
+                  return { 
                     ...mappedAttack, 
-                    ...(existing || {}), 
-                    timestamp: new Date().toLocaleTimeString(), 
-                    startTime: existing?.startTime ?? mappedAttack.startTime, 
-                    duration: existing?.duration ?? mappedAttack.duration, 
-                    progress: existing?.progress ?? mappedAttack.progress 
-                  }, ...next];
-                });
-                return currTest;
-              }
-            });
+                    ...(currTest || {}), 
+                    startTime: currTest?.startTime ?? mappedAttack.startTime, 
+                    duration: currTest?.duration ?? mappedAttack.duration, 
+                    progress: currTest?.progress ?? mappedAttack.progress 
+                  };
+                } else {
+                  setActiveAttacksWrapper(prev => {
+                    const next = prev.filter(a => a.id !== mappedAttack.id);
+                    const existing = prev.find(a => a.id === mappedAttack.id);
+                    return [{ 
+                      ...mappedAttack, 
+                      ...(existing || {}), 
+                      timestamp: new Date().toLocaleTimeString(), 
+                      startTime: existing?.startTime ?? mappedAttack.startTime, 
+                      duration: existing?.duration ?? mappedAttack.duration, 
+                      progress: existing?.progress ?? mappedAttack.progress 
+                    }, ...next];
+                  });
+                  return currTest;
+                }
+              });
+            }
           });
         }
       }
@@ -533,12 +541,13 @@ function App() {
     const savedAttacks = [];
     // Ø§Ø­ÙØ¸ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø© (Ø³ÙˆØ§Ø¡ ÙƒØ§Ù†Øª Ù…Ù† activeAttacks Ø£Ùˆ activeTestAttack)
     if (activeAttacks.length > 0) {
-      activeAttacks.forEach(attack => savedAttacks.push({ ...attack, status: 'MITIGATED' }));
+      activeAttacks.forEach(attack => {
+        discardedAlertIds.current.add(attack.id);
+        savedAttacks.push({ ...attack, status: 'MITIGATED' });
+      });
     }
     if (activeTestAttack && !activeAttacks.some(a => a.id === activeTestAttack.id)) {
-
-        discardedAlertIds.current.add(activeTestAttack.id);
-
+      discardedAlertIds.current.add(activeTestAttack.id);
       savedAttacks.push({ ...activeTestAttack, status: 'MITIGATED' });
     }
 
