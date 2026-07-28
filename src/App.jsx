@@ -59,7 +59,7 @@ function App() {
   const [showMultiAttackDetail, setShowMultiAttackDetail] = useState(false);
   const [alertSuppressed, setAlertSuppressed] = useState(false);
   const [heuristicProgress, setHeuristicProgress] = useState(0);
-  const [historyList, setHistoryList] = useState([...initialHistoryData]);
+  const [historyList, setHistoryList] = useState([]);
   const [liveLog, setLiveLog] = useState("SYSTEM_IDLE");
   const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "↓ 0.0 KB/s | ↑ 0.0 KB/s" });
 
@@ -354,17 +354,27 @@ function App() {
                 }
               }).catch(()=>{});
 
-              if (!initialPoll) {
+              if (!initialPoll && isNewAlert) {
                 setLastAttackForAlert(mappedAttack);
-                if (!isAttacked) {
-                  setIsAttacked(true);
-                  setAlarmPlayedForSession(false);
-                }
-                setShowOverlay(true);
               }
             }
             
-            if (!initialPoll && !discardedAlertIds.current.has(alertId)) {
+            // Only treat an alert as ACTIVE if it was ingested within the last 30 seconds.
+            // This prevents old history records loaded from the DB from showing up in the
+            // Analysis tab as live ongoing attacks.
+            const RECENT_WINDOW_MS = 30 * 1000;
+            const isRecentAlert = (receivedAtMs && (nowMs - receivedAtMs) < RECENT_WINDOW_MS) ||
+              (!receivedAtMs && isNewAlert); // fallback: if no timestamp, only treat as active if it's brand new
+
+            if (!initialPoll && isRecentAlert && isNewAlert) {
+              if (!isAttacked) {
+                setIsAttacked(true);
+                setAlarmPlayedForSession(false);
+              }
+              setShowOverlay(true);
+            }
+
+            if (!initialPoll && isRecentAlert && !discardedAlertIds.current.has(alertId)) {
               setActiveTestAttack(currTest => {
                 const isCurrentlyActive = (currTest && currTest.id === alertId) || activeAttacks.some(a => a.id === alertId);
                 
