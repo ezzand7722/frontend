@@ -1018,7 +1018,7 @@ function App() {
             )}
           </main>
 
-          <Header settings={settings} isAttacked={isAttacked} time={time} liveLog={liveLog} />
+          <Header settings={settings} isAttacked={isAttacked} time={time} liveLog={liveLog} onEndAttack={finalizeAttackAndSave} />
 
           <nav className="side-nav-large" style={{ zIndex: 200000, pointerEvents: 'all', position: 'fixed' }}>
             <div className="nav-items-wrapper">
@@ -1058,6 +1058,7 @@ function App() {
               heuristicProgress={heuristicProgress}
               lastAttackForAlert={lastAttackForAlert}
               toggleAttack={toggleAttack}
+              onEndAttack={finalizeAttackAndSave}
               onDetailView={openAttackDetail}
               onCloseOverlay={closeOverlay}
               onHideOverlay={hideOverlay}
@@ -1075,6 +1076,7 @@ function App() {
                 activeTestAttack={activeTestAttack}
                 onSelectAttack={openAttackDetail}
                 onOpenMultiDashboard={() => { setShowOverlay(true); setCurrentScreen('double_attack'); }}
+                onEndAttack={finalizeAttackAndSave}
               />
             </div>
           )}
@@ -1119,6 +1121,16 @@ function App() {
               display: 'flex',
               zIndex: 100005, pointerEvents: 'all', position: 'fixed', bottom: '40px', right: '40px', gap: '15px', flexDirection: 'column', alignItems: 'flex-end'
             }}>
+
+              {isAttacked && (
+                <button
+                  onClick={finalizeAttackAndSave}
+                  className="control-btn-pro"
+                  style={{ background: '#ff0000', borderColor: '#ff0000', color: '#ffffff', boxShadow: '0 0 20px rgba(255,0,0,0.8)', width: '220px', fontWeight: '900' }}
+                >
+                  🛑 END ATTACK NOW
+                </button>
+              )}
 
               {showLoopbackMenu && (
                 <div className="loopback-selector-popup">
