@@ -198,6 +198,7 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
                   key={selectedHistory.id} 
                   isAttacked={true} 
                   attackerCoords={selectedHistory.coords} 
+                  attackerData={selectedHistory}
                   customWidth={800} 
                   customHeight={600} 
                 />

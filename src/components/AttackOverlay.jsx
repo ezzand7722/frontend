@@ -322,6 +322,7 @@ const AttackOverlay = ({
                     key={activeTestAttack.id} 
                     isAttacked={true} 
                     attackerCoords={activeTestAttack.coords} 
+                    attackerData={activeTestAttack}
                     customWidth={activeAttackCount > 3 ? 350 : 460} 
                     customHeight={280} 
                   />
@@ -488,6 +489,7 @@ const AttackOverlay = ({
                 key={attackToShow.id} 
                 isAttacked={true} 
                 attackerCoords={attackToShow.coords} 
+                attackerData={attackToShow}
                 customWidth={650} 
                 customHeight={500} 
               />
@@ -596,7 +598,7 @@ const AttackOverlay = ({
           <div style={{ display: 'flex', gap: '20px', height: '420px', flexShrink: 0, marginBottom: '20px' }}>
             <div style={{ flex: '1', display: 'flex', flexDirection: 'column', border: '1px solid #00ff41', background: '#000', padding: '10px' }}>
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <LiveMap isAttacked={true} attackerCoords={activeSummaryAttacks[0]?.coords} customWidth={450} customHeight={330} />
+                <LiveMap isAttacked={true} attackerCoords={activeSummaryAttacks[0]?.coords} attackerData={activeSummaryAttacks[0]} customWidth={450} customHeight={330} />
               </div>
               <div style={{ marginTop: '15px', padding: '0 10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#00ff41', marginBottom: '5px' }}>
