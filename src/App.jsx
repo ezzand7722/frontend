@@ -59,21 +59,19 @@ function App() {
   const [showMultiAttackDetail, setShowMultiAttackDetail] = useState(false);
   const [alertSuppressed, setAlertSuppressed] = useState(false);
   const [heuristicProgress, setHeuristicProgress] = useState(0);
-  const [historyList, setHistoryList] = useState(
-    initialHistoryData.filter(item => item.ip !== '127.0.0.1' && item.src_ip !== '127.0.0.1')
-  );
+  const [historyList, setHistoryList] = useState([]);
   const [liveLog, setLiveLog] = useState("SYSTEM_IDLE");
-  const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "â†“ 0.0 KB/s | â†‘ 0.0 KB/s" });
+  const [serverStats, setServerStats] = useState({ cpu: "0%", ram: "0 GB / 8GB", network: "↓ 0.0 KB/s | ↑ 0.0 KB/s" });
 
   const [showLoopbackMenu, setShowLoopbackMenu] = useState(false);
   const [showLoopbackSubMenu, setShowLoopbackSubMenu] = useState(false);
   const [showMultiCountInput, setShowMultiCountInput] = useState(false);
   const [multiAttackCount, setMultiAttackCount] = useState('3');
   const [showLogUpload, setShowLogUpload] = useState(false);
-  const [lastAttackForAlert, setLastAttackForAlert] = useState(null); // Ù„ØªØªØ¨Ø¹ Ø¢Ø®Ø± Ù‡Ø¬Ù…Ø© Ù„Ù„Ø¥Ù†Ø°Ø§Ø±
-  const [alarmPlayedForSession, setAlarmPlayedForSession] = useState(false); // Ù„Ø¶Ù…Ø§Ù† ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙ‚Ø·
-  const isSpeaking = useRef(false); // Ù„Ù…Ù†Ø¹ ØªØ´ØºÙŠÙ„ ÙˆØ¸ÙŠÙØªÙŠÙ† Ù†Ø·Ù‚ ÙÙŠ Ù†ÙØ³ Ø§Ù„ÙˆÙ‚Øª
-  const alertShownForAttackIds = useRef(new Set()); // ØªØªØ¨Ø¹ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„ØªÙŠ ØªÙ… Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„Ù‡Ø§
+  const [lastAttackForAlert, setLastAttackForAlert] = useState(null); // لتتبع آخر هجمة للإندار
+  const [alarmPlayedForSession, setAlarmPlayedForSession] = useState(false); // لضمان تشغيل الإنذار مرة واحدة فقط
+  const isSpeaking = useRef(false); // لمنع تشغيل وظيفتي نطق في نفس الوقت
+  const alertShownForAttackIds = useRef(new Set()); // تتبع الهجمات التي تم عرض الإنذار لها
 
   const isFinalizing = useRef(false);
   const attackRef = useRef(false);
@@ -94,11 +92,12 @@ function App() {
   const addToHistory = useCallback((attack) => {
     if (!attack || !attack.id) return;
     setHistoryList(prev => {
-      const exists = prev.find(item => item.id === attack.id);
-      if (exists) return prev;
-
-      // Ø§Ù„ØªØ¹Ø¯ÙŠÙ„: Ø§Ù„ØªØ£ÙƒØ¯ Ù…Ù† Ø£Ù† Ø§Ù„Ù‡Ø¬ÙˆÙ… Ø§Ù„Ø¬Ø¯ÙŠØ¯ ÙŠØ¶Ø§Ù ÙÙŠ Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ù…ØµÙÙˆÙØ©
-      return [{ ...attack, timestamp: new Date().toLocaleTimeString() }, ...prev];
+      const nonMock = prev.filter(item => !item.id.startsWith('EV-9901') && !item.id.startsWith('EV-8842') && !item.id.startsWith('EV-7721') && !item.id.startsWith('EV-6610') && !item.id.startsWith('EV-5509'));
+      const exists = nonMock.find(item => item.id === attack.id);
+      if (exists) {
+        return nonMock.map(item => item.id === attack.id ? { ...item, ...attack } : item);
+      }
+      return [{ ...attack, timestamp: new Date().toLocaleTimeString() }, ...nonMock];
     });
   }, []);
 
@@ -335,7 +334,7 @@ function App() {
               eventTimeline: timeline
             };
             
-            if (!initialPoll) addToHistory(mappedAttack);
+            addToHistory(mappedAttack);
               
             if (!seenAlertToken.current.has(alertId)) {
               seenAlertToken.current.set(alertId, true);
