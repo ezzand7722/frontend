@@ -673,62 +673,62 @@ function App() {
     if (isFinalizing.current) return;
     isFinalizing.current = true;
 
-    attackRef.current = false;
-    window.speechSynthesis.cancel();
-    if (sirenAudio.current) {
-      sirenAudio.current.pause();
-      sirenAudio.current.currentTime = 0;
-    }
-
-    const savedAttacks = [];
-    const endPromises = [];
-    
-    const endAttackOnBackend = async (id) => {
-      try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-        await fetch(`${backendUrl}/ai/attack-context/${id}/end`, { method: 'POST' });
-      } catch (err) {
-        console.error('Failed to end attack on backend:', err);
+    try {
+      attackRef.current = false;
+      window.speechSynthesis.cancel();
+      if (sirenAudio.current) {
+        sirenAudio.current.pause();
+        sirenAudio.current.currentTime = 0;
       }
-    };
 
-    // Ø§Ø­Ù Ø¸ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø© (Ø³ÙˆØ§Ø¡ ÙƒØ§Ù†Øª Ù…Ù† activeAttacks Ø£Ùˆ activeTestAttack)
-    if (activeAttacks.length > 0) {
-      activeAttacks.forEach(attack => {
-        discardedAlertIds.current.add(attack.id);
-        savedAttacks.push({ ...attack, status: 'MITIGATED' });
-        endPromises.push(endAttackOnBackend(attack.id));
-      });
+      const savedAttacks = [];
+      const endPromises = [];
+      
+      const endAttackOnBackend = async (id) => {
+        try {
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+          await fetch(`${backendUrl}/ai/attack-context/${id}/end`, { method: 'POST' });
+        } catch (err) {
+          console.error('Failed to end attack on backend:', err);
+        }
+      };
+
+      if (activeAttacks.length > 0) {
+        activeAttacks.forEach(attack => {
+          discardedAlertIds.current.add(attack.id);
+          savedAttacks.push({ ...attack, status: 'MITIGATED' });
+          if (attack.id) endPromises.push(endAttackOnBackend(attack.id));
+        });
+      }
+      
+      if (activeTestAttack && !activeAttacks.some(a => a.id === activeTestAttack.id)) {
+        discardedAlertIds.current.add(activeTestAttack.id);
+        savedAttacks.push({ ...activeTestAttack, status: 'MITIGATED' });
+        if (activeTestAttack.id) endPromises.push(endAttackOnBackend(activeTestAttack.id));
+      }
+
+      await Promise.all(endPromises);
+
+      if (savedAttacks.length > 0) savedAttacks.forEach(attack => addToHistory(attack));
+      isSpeaking.current = false;
+      window.speechSynthesis.cancel();
+
+      setIsAttacked(false);
+      setShowOverlay(false);
+      setActiveTestAttack(null);
+      setActiveAttacksWrapper([]);
+      setLastAttackForAlert(null);
+      setAlarmPlayedForSession(false);
+      setDoubleAttackMode(false);
+      setAlertSuppressed(false);
+      setSelectedAttackForDetail(null);
+      setShowMultiAttackDetail(false);
+      setHeuristicProgress(0);
+      setCurrentScreen('main');
+      setActiveModule(null);
+    } finally {
+      setTimeout(() => { isFinalizing.current = false; }, 500);
     }
-    if (activeTestAttack && !activeAttacks.some(a => a.id === activeTestAttack.id)) {
-      discardedAlertIds.current.add(activeTestAttack.id);
-      savedAttacks.push({ ...activeTestAttack, status: 'MITIGATED' });
-      endPromises.push(endAttackOnBackend(activeTestAttack.id));
-    }
-
-    await Promise.all(endPromises);
-
-    if (savedAttacks.length > 0) savedAttacks.forEach(attack => addToHistory(attack));
-    isSpeaking.current = false;
-    window.speechSynthesis.cancel();
-
-    setIsAttacked(false);
-    setShowOverlay(false);
-    setActiveTestAttack(null);
-    setActiveAttacksWrapper([]);
-    setLastAttackForAlert(null); // Ø£Ø¹Ø¯ ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø¥Ù†Ø°Ø§Ø±
-    setAlarmPlayedForSession(false); // Ø£Ø¹Ø¯ ØªØ¹ÙŠÙŠÙ† Ø¹Ù„Ù… Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ù„Ù„Ø¬Ù„Ø³Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©
-    setDoubleAttackMode(false);
-    setAlertSuppressed(false);
-    setSelectedAttackForDetail(null);
-    setShowMultiAttackDetail(false);
-    setHeuristicProgress(0);
-    setCurrentScreen('main');
-    setActiveModule(null);
-    // alertShownForAttackIds.current.clear(); // Ù…Ø³Ø­ Ø³Ø¬Ù„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø±Ø§Øª
-    // seenAlertToken.current.clear(); // Disabled to fix loop bug // Allow backend attacks to re-appear after mitigation
-
-    setTimeout(() => { isFinalizing.current = false; }, 500);
   }, [activeAttacks, activeTestAttack, addToHistory, doubleAttackMode]);
 
   useEffect(() => {

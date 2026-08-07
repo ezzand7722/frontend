@@ -423,7 +423,7 @@ const AttackOverlay = ({
                     cursor: 'default', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
                   }}
                 >
-                  {`VECTOR_${detailAttack.id ? detailAttack.id.slice(-2) : '01'} ${detailAttack.type?.substring(0, 8) || ''}`}
+                  {`VECTOR_${detailAttack.id ? String(detailAttack.id).slice(-2) : '01'} ${String(detailAttack.type || '').substring(0, 8)}`}
                 </button>
               ) : (
                 <>
@@ -438,7 +438,7 @@ const AttackOverlay = ({
                         cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
                       }}
                     >
-                      VECTOR_01 {activeTestAttack.type.substring(0, 8)}
+                      VECTOR_01 {String(activeTestAttack.type || '').substring(0, 8)}
                     </button>
                   )}
                   {activeAttacks.map((attack, idx) => (
@@ -453,7 +453,7 @@ const AttackOverlay = ({
                         cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px', whiteSpace: 'nowrap'
                       }}
                     >
-                      VECTOR_{String(idx + 2).padStart(2, '0')} {attack.type.substring(0, 8)}
+                      VECTOR_{String(idx + 2).padStart(2, '0')} {String(attack.type || '').substring(0, 8)}
                     </button>
                   ))}
                 </>
@@ -622,7 +622,7 @@ const AttackOverlay = ({
                 {activeSummaryAttacks.map((attack, idx) => (
                   <div key={attack.id} style={{ padding: '14px', border: '1px solid rgba(0,255,65,0.2)', background: '#010901' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#00ff41', fontWeight: 'bold' }}>
-                      <span>{`VECTOR_${String(idx + 1).padStart(2, '0')} ${attack.type?.substring(0, 16) || 'MISSING'}`}</span>
+                      <span>{`VECTOR_${String(idx + 1).padStart(2, '0')} ${String(attack.type || 'MISSING').substring(0, 16)}`}</span>
                       <span>{attack.threat || 'MISSING'}</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', color: '#ccc', fontSize: '12px' }}>
