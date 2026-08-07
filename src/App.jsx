@@ -71,7 +71,7 @@ function mapAttackContextToCard(ctx) {
     loc: ctx.location || 'MISSING',
     city: (ctx.location || 'MISSING').split(',')[0] || 'MISSING',
     country: (ctx.location || 'MISSING').split(',')[1]?.trim() || 'MISSING',
-    coords: { lat: ctx.latitude || 0, lng: ctx.longitude || 0 },
+    coords: (ctx.latitude != null && ctx.longitude != null) ? { lat: ctx.latitude, lng: ctx.longitude } : null,
     
     // Legacy fields for compatibility with existing components
     eventTimeline: [],
