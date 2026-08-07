@@ -121,8 +121,6 @@ const AttackOverlay = ({
   }, [heuristicProgress]);
 
   // Fake metrics removed
-  }, [isAttacked, currentScreen]);
-
   // الانتقال التلقائي من attack_details إلى attack_summary بعد 10 ثوان
   // useEffect(() => {
   //   if (currentScreen === 'attack_details' && isAttacked) {
@@ -483,10 +481,10 @@ const AttackOverlay = ({
                 <tbody style={{ fontSize: '16px' }}>
                   <tr><td style={{ padding: '10px 0' }}>EVENT_ID</td><td className="yellow-txt"><Typewriter text={attackToShow.id} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>SOURCE_IP (src_ip)</td><td className="red-txt" style={{ fontWeight: 'bold', fontSize: '18px' }}><Typewriter text={attackToShow.ip || attackToShow.src_ip} startDelay={500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto || 'N/A'} (PORT: ${attackToShow.port || 'N/A'})`} startDelay={1500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || 'UNKNOWN'} startDelay={2000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || 'UNKNOWN'} startDelay={2500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || 'UNKNOWN'} startDelay={3000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto || ''} ${attackToShow.port ? `(PORT: ${attackToShow.port})` : ''}`} startDelay={1500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || ''} startDelay={2000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || ''} startDelay={2500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || ''} startDelay={3000} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>REPUTATION</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.reputation || "MALICIOUS"} startDelay={3000} /></td></tr>
                 </tbody>
               </table>
@@ -622,15 +620,15 @@ const AttackOverlay = ({
                 {activeSummaryAttacks.map((attack, idx) => (
                   <div key={attack.id} style={{ padding: '14px', border: '1px solid rgba(0,255,65,0.2)', background: '#010901' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#00ff41', fontWeight: 'bold' }}>
-                      <span>{`VECTOR_${String(idx + 1).padStart(2, '0')} ${String(attack.type || 'MISSING').substring(0, 16)}`}</span>
-                      <span>{attack.threat || 'MISSING'}</span>
+                      <span>{`VECTOR_${String(idx + 1).padStart(2, '0')} ${String(attack.type || '').substring(0, 16)}`}</span>
+                      <span>{attack.threat || ''}</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', color: '#ccc', fontSize: '12px' }}>
                       <div><strong>IP:</strong> <span>{attack.ip || attack.src_ip || 'MISSING'}</span></div>
                       <div><strong>LOC:</strong> <span>{attack.loc || 'MISSING'}</span></div>
-                      <div><strong>PROTO:</strong> <span>{attack.proto || 'MISSING'}</span></div>
-                      <div><strong>PORT:</strong> <span>{attack.port || 'MISSING'}</span></div>
-                      <div><strong>STATUS:</strong> <span>{attack.status || 'MISSING'}</span></div>
+                      <div><strong>PROTO:</strong> <span>{attack.proto || ''}</span></div>
+                      <div><strong>PORT:</strong> <span>{attack.port || ''}</span></div>
+                      <div><strong>STATUS:</strong> <span>{attack.status || ''}</span></div>
 
                     </div>
                   </div>
