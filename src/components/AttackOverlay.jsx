@@ -13,12 +13,13 @@ const Typewriter = ({ text, delay = 40, startDelay = 0 }) => {
   }, [startDelay]);
 
   useEffect(() => {
-    if (!started || !text) return;
+    if (!started || text == null) return;
+    const strText = String(text);
     let i = 0;
     const timer = setInterval(() => {
-      setDisplayedText(text.substring(0, i + 1));
+      setDisplayedText(strText.substring(0, i + 1));
       i++;
-      if (i >= text.length) clearInterval(timer);
+      if (i >= strText.length) clearInterval(timer);
     }, delay);
     return () => clearInterval(timer);
   }, [started, text, delay]);
