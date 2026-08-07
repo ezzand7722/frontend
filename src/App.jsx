@@ -59,7 +59,7 @@ function mapAttackContextToCard(ctx) {
     suspiciousCmds: ctx.suspicious_cmds || 0,
     durationSeconds: ctx.duration_seconds || 0,
     severityScore: ctx.severity_score || 50,
-    threat: ctx.severity_score || 50,
+    threat: severityMap[ctx.severity] || (ctx.severity ? String(ctx.severity).toUpperCase() : 'MISSING'),
     severityColor: ctx.severity_color || '#ffd60a',
     isActive: ctx.is_active !== false,
     date: ctx.last_seen_time ? new Date(ctx.last_seen_time).toLocaleString() : new Date().toLocaleString(),
@@ -373,16 +373,17 @@ function App() {
               src_ip: alert.src_ip || 'Missing',
               port: alert.dest_port || 0,
               proto: alert.protocol || 'TCP',
-              loc: alert.location || 'MISSING',
-              city: (alert.location || 'MISSING').split(',')[0] || 'MISSING',
-              country: (alert.location || 'MISSING').split(',')[1]?.trim() || 'MISSING',
+              loc: alert.details?.event?.metadata?.location || alert.location || 'MISSING',
+              city: (alert.details?.event?.metadata?.location || alert.location || 'MISSING').split(',')[0] || 'MISSING',
+              country: (alert.details?.event?.metadata?.location || alert.location || 'MISSING').split(',')[1]?.trim() || 'MISSING',
               threat: severityStr,
               severity: severityStr,
+              severityScore: { 'EXTREME': 100, 'HIGH': 80, 'MEDIUM': 55, 'LOW': 30, 'MISSING': 10 }[severityStr] || 50,
               coords: { lat: alert.latitude || 0, lng: alert.longitude || 0 },
               status: 'DETECTED',
               packetSize: '1500 MTU',
               isp: 'Missing',
-              reputation: 'MALICIOUS',
+              reputation: 'MISSING',
               livePayload: 'Backend Log',
               detail: JSON.stringify(alert.details || {}),
               last_seen: lastSeenSeconds,
@@ -1083,7 +1084,7 @@ function App() {
 
   // Ø¯Ø§Ù„Ø© Ø¬Ø¯ÙŠØ¯Ø©: Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù€ overlay Ù Ù‚Ø· Ø¨Ø¯ÙˆÙ† Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„Ù‡Ø¬Ù…Ø©
   const hideOverlay = () => {
-    setActiveModule(prev => prev === 'analysis' ? null : prev);
+    setShowOverlay(false);
   };
 
   const handleNodeClick = (node, event) => {

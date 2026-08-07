@@ -479,13 +479,13 @@ const AttackOverlay = ({
               
               <table className="cyber-table" style={{ width: '100%', color: '#fff' }}>
                 <tbody style={{ fontSize: '16px' }}>
-                  <tr><td style={{ padding: '10px 0' }}>EVENT_ID</td><td className="yellow-txt"><Typewriter text={attackToShow.id} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>SOURCE_IP (src_ip)</td><td className="red-txt" style={{ fontWeight: 'bold', fontSize: '18px' }}><Typewriter text={attackToShow.ip || attackToShow.src_ip} startDelay={500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>EVENT_ID</td><td className="yellow-txt"><Typewriter text={attackToShow.id || 'MISSING'} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>SOURCE_IP (src_ip)</td><td className="red-txt" style={{ fontWeight: 'bold', fontSize: '18px' }}><Typewriter text={attackToShow.ip || attackToShow.src_ip || 'MISSING'} startDelay={500} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto || ''} ${attackToShow.port ? `(PORT: ${attackToShow.port})` : ''}`} startDelay={1500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || ''} startDelay={2000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || ''} startDelay={2500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || ''} startDelay={3000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>REPUTATION</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.reputation || "MALICIOUS"} startDelay={3000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || 'MISSING'} startDelay={2000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || 'MISSING'} startDelay={2500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || 'MISSING'} startDelay={3000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>REPUTATION</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.reputation || 'MISSING'} startDelay={3000} /></td></tr>
                 </tbody>
               </table>
 
@@ -584,7 +584,7 @@ const AttackOverlay = ({
                   <div><strong className="yellow-txt">TOTAL_CONNECTIONS</strong><div>{activeSummaryAttacks.reduce((sum, a) => sum + (a.connectionCount ?? a.connection_count ?? 0), 0)}</div></div>
                   <div><strong className="yellow-txt">TOTAL_FAILS</strong><div>{activeSummaryAttacks.reduce((sum, a) => sum + (a.failedCount ?? a.failed_count ?? 0), 0)}</div></div>
                   <div><strong className="yellow-txt">TOTAL_SUCCESS</strong><div>{activeSummaryAttacks.reduce((sum, a) => sum + (a.successCount ?? a.success_count ?? 0), 0)}</div></div>
-                  <div><strong className="yellow-txt">AVG THREAT</strong><div>{activeSummaryAttacks.length ? `${Math.round(activeSummaryAttacks.reduce((sum, a) => sum + Number((a.threat || '0').replace('%', '')) || 0, 0) / activeSummaryAttacks.length)}%` : '0%'}</div></div>
+                  <div><strong className="yellow-txt">AVG THREAT</strong><div>{activeSummaryAttacks.length ? `${Math.round(activeSummaryAttacks.reduce((sum, a) => sum + (a.severityScore || 0), 0) / activeSummaryAttacks.length)}%` : '0%'}</div></div>
                 </div>
               </div>
             </div>

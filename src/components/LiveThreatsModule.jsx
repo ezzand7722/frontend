@@ -139,10 +139,10 @@ const LiveThreatsModule = ({
                 }}>
                   <div>
                     <div style={{ color: '#fff', fontSize: '20px', fontWeight: '900', marginBottom: '5px' }}>
-                      SOURCE_IP: {displayAttack?.ip}
+                      SOURCE_IP: {displayAttack?.ip || 'MISSING'}
                     </div>
                     <div style={{ fontSize: '13px', opacity: 0.8, color: '#ff4d4d' }}>
-                      LOCATION: {displayAttack?.loc || ""} | THREAT_LEVEL: {displayAttack?.severity || ""}
+                      LOCATION: {displayAttack?.loc || 'MISSING'} | THREAT_LEVEL: {displayAttack?.severity || 'MISSING'}
                     </div>
                   </div>
                   <div className="blink-red" style={{ textAlign: 'right' }}>
