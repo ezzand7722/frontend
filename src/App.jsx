@@ -685,7 +685,8 @@ function App() {
     
     const endAttackOnBackend = async (id) => {
       try {
-        await fetch(`/api/ai/attack-context/${id}/end`, { method: 'POST' });
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        await fetch(`${backendUrl}/ai/attack-context/${id}/end`, { method: 'POST' });
       } catch (err) {
         console.error('Failed to end attack on backend:', err);
       }
