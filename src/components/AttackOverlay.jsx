@@ -485,7 +485,7 @@ const AttackOverlay = ({
                   <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto || 'N/A'} (PORT: ${attackToShow.port || 'N/A'})`} startDelay={1500} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || 'UNKNOWN'} startDelay={2000} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || 'UNKNOWN'} startDelay={2500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || 'LOW'} startDelay={3000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || 'UNKNOWN'} startDelay={3000} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>REPUTATION</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.reputation || "MALICIOUS"} startDelay={3000} /></td></tr>
                 </tbody>
               </table>

@@ -142,7 +142,7 @@ const LiveThreatsModule = ({
                       SOURCE_IP: {displayAttack?.ip}
                     </div>
                     <div style={{ fontSize: '13px', opacity: 0.8, color: '#ff4d4d' }}>
-                      LOCATION: {displayAttack?.loc || "HIDDEN_PROXY"} | THREAT_LEVEL: {displayAttack?.severity || "CRITICAL"}
+                      LOCATION: {displayAttack?.loc || "HIDDEN_PROXY"} | THREAT_LEVEL: {displayAttack?.severity || "UNKNOWN"}
                     </div>
                   </div>
                   <div className="blink-red" style={{ textAlign: 'right' }}>
