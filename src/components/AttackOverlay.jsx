@@ -119,25 +119,7 @@ const AttackOverlay = ({
     }
   }, [heuristicProgress]);
 
-  // محاكي البيانات (Metrics)
-  useEffect(() => {
-    let interval;
-    if (isAttacked && !hasTerminated.current) {
-      const timer = setTimeout(() => setShowBars(true), 100);
-      interval = setInterval(() => {
-        setLiveMetrics(prev => ({
-          packets: prev.packets + Math.floor(Math.random() * 150),
-          threatLevel: Math.min(99.9, 90 + Math.random() * 9.9),
-          bandwidth: (Math.random() * 800 + 200).toFixed(1) + " MB/s",
-        }));
-      }, 500);
-      return () => {
-        clearTimeout(timer);
-        clearInterval(interval);
-      };
-    } else {
-      setShowBars(false);
-    }
+  // Fake metrics removed
   }, [isAttacked, currentScreen]);
 
   // الانتقال التلقائي من attack_details إلى attack_summary بعد 10 ثوان
@@ -361,11 +343,7 @@ const AttackOverlay = ({
                   </div>
                   <div style={{ background: '#070707', padding: '12px', border: '1px solid rgba(255,0,0,0.12)' }}>
                     <div style={{ opacity: 0.7, fontSize: '11px', color: '#aaa' }}>PROTOCOL</div>
-                    <div style={{ color: '#fff', fontSize: '12px' }}>{activeTestAttack.proto}</div>
-                  </div>
-                  <div style={{ background: '#070707', padding: '12px', border: '1px solid rgba(255,0,0,0.12)' }}>
-                    <div style={{ opacity: 0.7, fontSize: '11px', color: '#aaa' }}>PAYLOAD</div>
-                    <div style={{ color: '#ff5555', fontWeight: 'bold', fontSize: '12px' }}>{activeTestAttack.livePayload}</div>
+                    <div style={{ color: '#fff', fontSize: '12px' }}>{activeTestAttack.proto || 'N/A'}</div>
                   </div>
                 </div>
 
@@ -375,7 +353,7 @@ const AttackOverlay = ({
                     <div><strong>VECTOR:</strong> <span style={{ color: '#ff4444' }}>{activeTestAttack.type}</span></div>
                     <div><strong>THREAT:</strong> <span style={{ color: '#ff4444' }}>{activeTestAttack.threat}</span></div>
                     <div><strong>STATUS:</strong> <span style={{ color: '#00ff41' }}>{activeTestAttack.status}</span></div>
-                    <div><strong>ISP:</strong> <span style={{fontSize: '11px'}}>{activeTestAttack.isp || 'MISSING'}</span></div>
+
                   </div>
                   <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,0,0,0.15)', fontSize: '11px', color: '#ccc' }}>
                     <div><strong>CONNECTION_COUNT:</strong> {activeTestAttack.connectionCount ?? activeTestAttack.connection_count ?? 0}</div>
@@ -504,12 +482,10 @@ const AttackOverlay = ({
                 <tbody style={{ fontSize: '16px' }}>
                   <tr><td style={{ padding: '10px 0' }}>EVENT_ID</td><td className="yellow-txt"><Typewriter text={attackToShow.id} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>SOURCE_IP (src_ip)</td><td className="red-txt" style={{ fontWeight: 'bold', fontSize: '18px' }}><Typewriter text={attackToShow.ip || attackToShow.src_ip} startDelay={500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>ISP_ORIGIN</td><td><Typewriter text={attackToShow.isp || "Global Telecom"} startDelay={1000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto} (PORT: ${attackToShow.port})`} startDelay={1500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase()} startDelay={2000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type} startDelay={2500} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.threat || attackToShow.severity} startDelay={3000} /></td></tr>
-                  <tr><td style={{ padding: '10px 0' }}>LIVE_LOAD</td><td className="red-txt" style={{fontFamily: 'monospace'}}>{liveMetrics.bandwidth}</td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>PROTOCOL</td><td><Typewriter text={`${attackToShow.proto || 'N/A'} (PORT: ${attackToShow.port || 'N/A'})`} startDelay={1500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>LOCATION</td><td><Typewriter text={attackToShow.loc?.toUpperCase() || 'UNKNOWN'} startDelay={2000} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>ATTACK (attack_type)</td><td style={{ color: '#ffaa00' }}><Typewriter text={attackToShow.type || attackToShow.attack_type || 'UNKNOWN'} startDelay={2500} /></td></tr>
+                  <tr><td style={{ padding: '10px 0' }}>SEVERITY (severity)</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.severity || 'LOW'} startDelay={3000} /></td></tr>
                   <tr><td style={{ padding: '10px 0' }}>REPUTATION</td><td className="red-txt" style={{ fontWeight: 'bold' }}><Typewriter text={attackToShow.reputation || "MALICIOUS"} startDelay={3000} /></td></tr>
                 </tbody>
               </table>
@@ -619,7 +595,7 @@ const AttackOverlay = ({
                 <h4 style={{ color: '#ff0000', marginBottom: '15px', borderBottom: '1px solid #ff0000' }}>[!] MULTI-ATTACK OVERVIEW</h4>
                 <div style={{ fontSize: '14px', color: '#ccc', lineHeight: '1.7' }}>
                   <p>ATTACKS ACTIVE: <span style={{ color: '#fff' }}>{activeSummaryAttacks.length}</span></p>
-                  <p>TOTAL PAYLOAD LOAD: <span style={{ color: '#fff' }}>{activeSummaryAttacks.reduce((sum, a) => sum + (Number(a.livePayload?.replace(' MB/s', '')) || 0), 0).toFixed(1)} MB/s</span></p>
+
                   <p>TOP THREAT VECTOR: <span style={{ color: '#fff' }}>{activeSummaryAttacks[0]?.type || 'MISSING'}</span></p>
                   <p className="red-txt" style={{ marginTop: '20px', fontWeight: 'bold' }}>RESULT: MULTI-VECTOR ANALYSIS</p>
                 </div>
@@ -654,7 +630,7 @@ const AttackOverlay = ({
                       <div><strong>PROTO:</strong> <span>{attack.proto || 'MISSING'}</span></div>
                       <div><strong>PORT:</strong> <span>{attack.port || 'MISSING'}</span></div>
                       <div><strong>STATUS:</strong> <span>{attack.status || 'MISSING'}</span></div>
-                      <div><strong>PAYLOAD:</strong> <span>{attack.livePayload || 'MISSING'}</span></div>
+
                     </div>
                   </div>
                 ))}
