@@ -23,7 +23,7 @@ const menuItems = [
   { id: 'live', label: 'LIVE THREATS', Component: Icons.Live },
   { id: 'network', label: 'NETWORK', Component: Icons.Network },
   { id: 'history', label: 'ATTACK HISTORY', Component: Icons.History },
-  { id: 'analysis', label: 'ANALYSIS', Component: Icons.Analysis },
+  // { id: 'analysis', label: 'ANALYSIS', Component: Icons.Analysis },
   { id: 'raw_ai', label: 'RAW AI OUTPUT', Component: Icons.RawData },
   { id: 'config', label: 'SETTINGS', Component: Icons.Config },
 ];
@@ -89,7 +89,9 @@ function mapAttackContextToCard(ctx) {
       command_count: ctx.command_count,
       suspicious_cmds: ctx.suspicious_cmds,
       duration_seconds: ctx.duration_seconds,
-    }
+    },
+    // Mitigation commands from AI analysis
+    recommended_commands: ctx.recommended_commands || []
   };
 }
 
@@ -1201,7 +1203,7 @@ function App() {
                   <span className="nav-label-text" style={{ color: (isAttacked && item.id !== 'config') ? '#ff0000' : '#00ff41' }}>
                     {item.label}
                   </span>
-                  {isAttacked && (item.id === 'live' || item.id === 'network' || item.id === 'history' || item.id === 'analysis') && (
+                  {isAttacked && (item.id === 'live' || item.id === 'network' || item.id === 'history') && (
                     <div className="mini-alert-dot pulse-red"></div>
                   )}
                 </div>

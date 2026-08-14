@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import LiveMap from './LiveMap';
+import CommandTerminal from './CommandTerminal';
 import { getActiveAttackCount, getCombinedActiveAttacks } from '../logic/attackState';
 
 // مكون فرعي لعرض النص حرفاً بحرف (تأثير النوع السينمائي)
@@ -45,6 +46,7 @@ const AttackOverlay = ({
   lastAttackForAlert
 }) => {
   const [summaryAttacks, setSummaryAttacks] = useState(null);
+  const [showCommandTerminal, setShowCommandTerminal] = useState(false);
   
   const combinedAttacks = useMemo(() => getCombinedActiveAttacks({ activeTestAttack, activeAttacks }), [activeTestAttack, activeAttacks]);
   const activeAttackCount = combinedAttacks.length;
@@ -553,6 +555,38 @@ const AttackOverlay = ({
                 }}>
                   {" GENERATE INCIDENT SUMMARY REPORT >> "}
                 </button>
+                <button 
+                  onClick={() => setShowCommandTerminal(true)}
+                  style={{
+                    marginTop: '10px',
+                    padding: '14px 20px',
+                    background: 'transparent',
+                    color: '#00ff41',
+                    border: '2px solid #00ff41',
+                    fontWeight: '900',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    letterSpacing: '2px',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 10px rgba(0, 255, 65, 0.2)',
+                    width: '100%',
+                    textAlign: 'center',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#00ff41';
+                    e.currentTarget.style.color = '#000';
+                    e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 255, 65, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#00ff41';
+                    e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 65, 0.2)';
+                  }}
+                >
+                  {"⚡ VIEW MITIGATION COMMANDS >>"}
+                </button>
               </div>
             </div>
           </div>
@@ -683,6 +717,16 @@ const AttackOverlay = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Command Terminal Overlay */}
+      {showCommandTerminal && attackToShow && (
+        <CommandTerminal
+          commands={attackToShow.recommended_commands || []}
+          attackType={attackToShow.type || attackToShow.attack_type || 'Unknown'}
+          attackerIp={attackToShow.ip || attackToShow.src_ip || 'N/A'}
+          onClose={() => setShowCommandTerminal(false)}
+        />
       )}
     </>
   );
