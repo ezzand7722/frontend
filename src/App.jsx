@@ -68,11 +68,11 @@ function mapAttackContextToCard(ctx) {
     timestamp: ctx.last_seen_time || ctx.start_time || new Date().toISOString(),
     signal: ctx.signal || '',
 
-    // Geo mapping for LiveMap
-    loc: ctx.location || 'MISSING',
-    city: (ctx.location || 'MISSING').split(',')[0] || 'MISSING',
-    country: (ctx.location || 'MISSING').split(',')[1]?.trim() || 'MISSING',
-    coords: (ctx.latitude != null && ctx.longitude != null) ? { lat: ctx.latitude, lng: ctx.longitude } : null,
+    // Geo mapping for LiveMap — static Amman, Jordan
+    loc: ctx.location || 'Amman, Jordan',
+    city: (ctx.location || 'Amman, Jordan').split(',')[0] || 'Amman',
+    country: (ctx.location || 'Amman, Jordan').split(',')[1]?.trim() || 'Jordan',
+    coords: (ctx.latitude != null && ctx.longitude != null) ? { lat: ctx.latitude, lng: ctx.longitude } : { lat: 31.9454, lng: 35.9284 },
     
     // Legacy fields for compatibility with existing components
     eventTimeline: [],

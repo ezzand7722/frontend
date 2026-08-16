@@ -1,4 +1,4 @@
-import { THREAT_POOL, GEO_POOL } from '../data/attackData';
+import { THREAT_POOL } from '../data/attackData';
 
 export const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -24,12 +24,8 @@ export const generateEventTimeline = () => {
 // --- الدالة الأصلية المعدلة لتشريح الموقع ---
 export const createTestAttack = () => {
   const randomThreat = randomItem(THREAT_POOL);
-  const randomGeo = randomItem(GEO_POOL);
-  
-  // تشريح نص الموقع (مثلاً "Moscow, RU" إلى مدينة ودولة)
-  const geoParts = randomGeo.loc.split(', ');
-  const city = geoParts[0] || "MISSING";
-  const country = geoParts[1] || "MISSING";
+  const city = "Amman";
+  const country = "JO";
 
   const attackId = 'EV-' + Math.floor(Math.random() * 90000 + 10000);
   const sharedIp = generateRandomIP(); // single IP used for both src_ip and ip
@@ -45,13 +41,13 @@ export const createTestAttack = () => {
     ip: sharedIp,
     port: randomThreat.port,
     proto: randomThreat.proto,
-    loc: randomGeo.loc,
+    loc: "Amman, Jordan",
     city: city,      // إضافة حقل المدينة بشكل منفصل
     country: country, // إضافة حقل الدولة بشكل منفصل
     threat: (Math.floor(Math.random() * 20) + 80) + '%',
     severity: (Math.floor(Math.random() * 20) + 80) + '%',
     severityScore: Math.floor(Math.random() * 20) + 80,
-    coords: { lat: randomGeo.lat, lng: randomGeo.lng },
+    coords: { lat: 31.9454, lng: 35.9284 },
     status: 'DETECTED & LOGGED',
     packetSize: '1500 MTU',
     isp: 'MISSING',
