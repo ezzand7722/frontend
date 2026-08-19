@@ -14,15 +14,21 @@ const LiveThreatsModule = ({
   // دون حذف أي بيانات أو ميزات
   const allAttacks = useMemo(() => {
     const attacks = [];
+    const seenIps = new Set();
+    const pushUnique = (a) => {
+      if (!a) return;
+      const ip = a.ip || a.src_ip || a.id;
+      if (seenIps.has(ip)) return;
+      seenIps.add(ip);
+      attacks.push(a);
+    };
+    // AI attack-context cards first (richer data, take priority)
     if (activeAttacks && activeAttacks.length > 0) {
-      // نعتمد المصفوفة النشطة لأنها تحتوي بالفعل على كل المتجهات المطلوبة
-      attacks.push(...activeAttacks);
+      activeAttacks.forEach(pushUnique);
     }
+    // Only add basic alert card if no AI card exists for this IP
     if (activeTestAttack) {
-      // أضف activeTestAttack إذا لم يكن موجوداً ضمن activeAttacks
-      if (!attacks.some((a) => a.id === activeTestAttack.id)) {
-        attacks.push(activeTestAttack);
-      }
+      pushUnique(activeTestAttack);
     }
     return attacks;
   }, [activeAttacks, activeTestAttack]);

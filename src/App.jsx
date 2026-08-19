@@ -109,6 +109,20 @@ function App() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [activeTestAttack, setActiveTestAttack] = useState(null);
   const [activeAttacks, setActiveAttacks] = useState([]);
+  const activeAttacksRef = useRef([]);
+  // Keep ref in sync so stale closures can read current value
+  useEffect(() => { activeAttacksRef.current = activeAttacks; }, [activeAttacks]);
+  
+  // Ensure the detail view doesn't freeze with old snapshots
+  useEffect(() => {
+    setSelectedAttackForDetail(prevSelected => {
+      if (!prevSelected) return prevSelected;
+      const liveData = activeAttacks.find(a => a.id === prevSelected.id) 
+                       || (activeTestAttack?.id === prevSelected.id ? activeTestAttack : null);
+      return liveData ? liveData : prevSelected;
+    });
+  }, [activeAttacks, activeTestAttack]);
+
   // Debug wrapper to trace unexpected additions to activeAttacks
   const setActiveAttacksWrapper = (updater) => {
     setActiveAttacks(prev => {
@@ -442,7 +456,7 @@ function App() {
 
             if (!initialPoll && isRecentAlert && !discardedAlertIds.current.has(alertId)) {
               // Skip setting activeTestAttack if AI already has a card for this IP (I11)
-              const aiAlreadyHasIp = activeAttacks.some(a => (a.ip || a.src_ip) === alert.src_ip);
+              const aiAlreadyHasIp = activeAttacksRef.current.some(a => (a.ip || a.src_ip) === alert.src_ip);
               if (aiAlreadyHasIp) { /* AI card takes priority, don't spawn duplicate */ }
               else setActiveTestAttack(currTest => {
                 const isCurrentlyActive = (currTest && currTest.id === alertId) || activeAttacks.some(a => a.id === alertId);
@@ -820,6 +834,11 @@ function App() {
           });
 
           const remaining = updated.filter(attack => {
+            // Never auto-remove AI-sourced cards — they are managed by
+            // the /ai/attack-context poll which removes them when the
+            // backend reports attack_status='ended'.
+            if (attack.attack_context_id) return true;
+
             if ((attack.progress || 0) >= 100) {
 
                 discardedAlertIds.current.add(attack.id);
@@ -885,6 +904,7 @@ function App() {
         const now = Date.now();
         // Ù…Ø¯Ø© Ø§Ù„Ù‡Ø¬Ù…Ø© Ù„ÙƒÙ„ Ù‡Ø¬Ù…Ø© (25-35 Ø«Ø§Ù†ÙŠØ©)
         const remaining = prev.filter(attack => {
+          if (attack.attack_context_id) return true; // AI attacks end via backend status
           const attackStartTime = attack.startTime || Date.now();
           const attackDuration = attack.duration || (45000);
           return (now - attackStartTime) < attackDuration;
