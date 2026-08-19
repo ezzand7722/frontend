@@ -35,13 +35,32 @@ const LiveThreatsModule = ({
 
   const [selectedAttack, setSelectedAttack] = useState(null);
 
+  // Keep selection stable by IP (not attack_id) so poll refreshes don't flip the card
   useEffect(() => {
-    if (!selectedAttack || !allAttacks.some((attack) => attack.id === selectedAttack.id)) {
-      setSelectedAttack(allAttacks.length > 0 ? allAttacks[0] : null);
+    if (allAttacks.length === 0) {
+      setSelectedAttack(null);
+      return;
     }
-  }, [allAttacks, selectedAttack]);
+    setSelectedAttack(prev => {
+      if (!prev) return allAttacks[0];
+      const prevIp = prev.ip || prev.src_ip || prev.id;
+      const live =
+        allAttacks.find(a => a.id === prev.id) ||
+        allAttacks.find(a => (a.ip || a.src_ip || a.id) === prevIp);
+      return live || allAttacks[0];
+    });
+  }, [allAttacks]);
 
-  const displayAttack = selectedAttack || (allAttacks.length > 0 ? allAttacks[0] : null);
+  const displayAttack = (() => {
+    if (!selectedAttack) return allAttacks[0] || null;
+    const ip = selectedAttack.ip || selectedAttack.src_ip || selectedAttack.id;
+    return (
+      allAttacks.find(a => a.id === selectedAttack.id) ||
+      allAttacks.find(a => (a.ip || a.src_ip || a.id) === ip) ||
+      allAttacks[0] ||
+      null
+    );
+  })();
 
   return (
     <div className="module-content" style={{ 
