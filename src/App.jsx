@@ -400,7 +400,7 @@ function App() {
               threat: severityStr,
               severity: severityStr,
               severityScore: { 'EXTREME': 100, 'HIGH': 80, 'MEDIUM': 55, 'LOW': 30, 'MISSING': 10 }[severityStr] || 50,
-              coords: { lat: alert.latitude || 0, lng: alert.longitude || 0 },
+              coords: (alert.latitude && alert.longitude) ? { lat: alert.latitude, lng: alert.longitude } : null,
               status: 'DETECTED',
               packetSize: '1500 MTU',
               isp: 'Missing',
