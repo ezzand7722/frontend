@@ -1,31 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { playAttackAlertSound } from '../logic/SFXEngine';
+import { startContinuousAlarm, stopContinuousAlarm } from '../logic/SFXEngine';
 
 /**
  * AttackNotification
  *
- * A non-blocking toast popup that appears in the bottom-right corner whenever a
- * new attack is detected. It plays an alert sound ("beep beep" + "DANGER! DANGER!"),
- * shows the key details (IP, type, severity, location: Amman, Jordan), and has an X
- * button to dismiss it. It also auto-dismisses after 12 seconds.
+ * An emergency warning popup that appears in the bottom-right corner whenever a
+ * new attack is detected.
+ *
+ * Audio & Behavior:
+ *   - Starts a CONTINUOUS LOUD BEEP and repeating "DANGER! DANGER!" voice alert.
+ *   - The alarm and popup will NOT stop until the user explicitly clicks the [✕] button.
+ *   - Displays source IP, attack type, severity, location (Amman, Jordan), and stats.
  *
  * Props:
- *   attack   – the attack card object (same shape used by the rest of the UI)
- *   onClose  – called when the X is clicked or the timer expires
+ *   attack   – the attack card object
+ *   onClose  – called when the X is clicked
  */
 const SEVERITY_COLORS = {
-  EXTREME: { border: '#ff0040', bg: 'rgba(255,0,64,0.12)', badge: '#ff0040', text: '#ff4466' },
-  HIGH:    { border: '#ff6b35', bg: 'rgba(255,107,53,0.12)', badge: '#ff6b35', text: '#ff8c5a' },
-  MEDIUM:  { border: '#ffd700', bg: 'rgba(255,215,0,0.10)', badge: '#ffd700', text: '#ffd700' },
-  LOW:     { border: '#00ff41', bg: 'rgba(0,255,65,0.08)',  badge: '#00ff41', text: '#00ff41' },
-  MISSING: { border: '#00d4ff', bg: 'rgba(0,212,255,0.08)', badge: '#00d4ff', text: '#00d4ff' },
+  EXTREME: { border: '#ff0040', bg: 'rgba(255,0,64,0.18)', badge: '#ff0040', text: '#ff3355', glow: 'rgba(255,0,64,0.7)' },
+  HIGH:    { border: '#ff6b35', bg: 'rgba(255,107,53,0.18)', badge: '#ff6b35', text: '#ff7b47', glow: 'rgba(255,107,53,0.7)' },
+  MEDIUM:  { border: '#ffd700', bg: 'rgba(255,215,0,0.15)', badge: '#ffd700', text: '#ffd700', glow: 'rgba(255,215,0,0.6)' },
+  LOW:     { border: '#00ff41', bg: 'rgba(0,255,65,0.12)',  badge: '#00ff41', text: '#00ff41', glow: 'rgba(0,255,65,0.5)' },
+  MISSING: { border: '#00d4ff', bg: 'rgba(0,212,255,0.12)', badge: '#00d4ff', text: '#00d4ff', glow: 'rgba(0,212,255,0.5)' },
 };
-
-const AUTO_DISMISS_MS = 12000;
 
 export default function AttackNotification({ attack, onClose }) {
   const [visible, setVisible] = useState(false);
-  const [progress, setProgress] = useState(100);
 
   const colors    = SEVERITY_COLORS[attack?.severity] || SEVERITY_COLORS.MISSING;
   const ip        = attack?.ip || attack?.src_ip || 'UNKNOWN';
@@ -37,35 +37,25 @@ export default function AttackNotification({ attack, onClose }) {
   const failCount = attack?.failed_count ?? '—';
   const succCount = attack?.success_count ?? '—';
 
-  // Slide-in on mount and trigger Beep Beep + "Danger! Danger!" sound
+  // Mount: start continuous loud beep + Danger Danger voice loop
   useEffect(() => {
     const t = setTimeout(() => {
       setVisible(true);
-      playAttackAlertSound("Danger! Danger! Attack detected!");
+      startContinuousAlarm("Danger! Danger! Attack detected!");
     }, 30);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Unmount cleanup: always guarantee sound stops if component unmounts
+    return () => {
+      clearTimeout(t);
+      stopContinuousAlarm();
+    };
   }, []);
 
-  // Progress bar drain + auto-dismiss
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev <= 0) {
-          clearInterval(interval);
-          handleClose();
-          return 0;
-        }
-        return prev - (100 / (AUTO_DISMISS_MS / 100));
-      });
-    }, 100);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // Dismiss only when user clicks [✕]
   const handleClose = () => {
+    stopContinuousAlarm();
     setVisible(false);
-    setTimeout(() => onClose?.(), 300);
+    setTimeout(() => onClose?.(), 250);
   };
 
   return (
@@ -75,87 +65,109 @@ export default function AttackNotification({ attack, onClose }) {
         bottom: '24px',
         right: '24px',
         zIndex: 99999,
-        width: '360px',
-        background: '#0d1b2a',
+        width: '370px',
+        background: '#0a1624',
         border: `2px solid ${colors.border}`,
         borderRadius: '8px',
-        boxShadow: `0 0 24px ${colors.border}66, 0 4px 24px rgba(0,0,0,0.7)`,
+        boxShadow: `0 0 35px ${colors.glow}, 0 8px 32px rgba(0,0,0,0.85)`,
         overflow: 'hidden',
         transform: visible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.97)',
         opacity: visible ? 1 : 0,
-        transition: 'transform 0.3s ease, opacity 0.3s ease',
+        transition: 'transform 0.25s ease, opacity 0.25s ease',
         fontFamily: "'Courier New', Courier, monospace",
       }}
     >
-      {/* ── Top bar ──────────────────────────────────────────────────────── */}
+      {/* ── Top emergency bar ────────────────────────────────────────────── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         background: colors.bg,
-        borderBottom: `1px solid ${colors.border}44`,
-        padding: '10px 14px 8px',
+        borderBottom: `1px solid ${colors.border}66`,
+        padding: '10px 14px 9px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Pulsing dot */}
+          {/* Pulsing indicator */}
           <span style={{
             display: 'inline-block',
-            width: '10px', height: '10px',
+            width: '12px', height: '12px',
             borderRadius: '50%',
             background: colors.badge,
-            boxShadow: `0 0 8px ${colors.badge}`,
-            animation: 'pulse-dot 1s infinite',
+            boxShadow: `0 0 12px ${colors.badge}`,
+            animation: 'pulse-dot 0.7s infinite alternate',
           }} />
-          <span style={{ color: colors.text, fontWeight: 'bold', fontSize: '13px', letterSpacing: '1px' }}>
-            ⚠ ATTACK DETECTED
+          <span style={{
+            color: colors.text,
+            fontWeight: '900',
+            fontSize: '13px',
+            letterSpacing: '1.2px',
+            textShadow: `0 0 8px ${colors.glow}`,
+          }}>
+            🚨 DANGER! ATTACK DETECTED
           </span>
         </div>
+
+        {/* The X button to silence the alarm */}
         <button
           onClick={handleClose}
-          aria-label="Close notification"
+          aria-label="Silence alarm and close"
+          title="Click to silence alarm"
           style={{
-            background: 'none',
-            border: 'none',
-            color: '#ccd6dd',
-            fontSize: '18px',
+            background: 'rgba(255,255,255,0.08)',
+            border: `1px solid ${colors.border}88`,
+            color: '#fff',
+            fontSize: '16px',
+            fontWeight: 'bold',
             cursor: 'pointer',
             lineHeight: 1,
-            padding: '2px 4px',
+            padding: '5px 8px',
             borderRadius: '4px',
-            transition: 'color 0.2s, background 0.2s',
+            transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#ccd6dd'; e.currentTarget.style.background = 'none'; }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = colors.border;
+            e.currentTarget.style.color = '#000';
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
         >
           ✕
         </button>
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '12px 14px 10px' }}>
+      <div style={{ padding: '14px 16px 12px' }}>
         {/* IP + Severity badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ color: '#ffffff', fontSize: '19px', fontWeight: '900', letterSpacing: '0.8px' }}>
             {ip}
           </span>
           <span style={{
             background: colors.badge,
-            color: '#0d1b2a',
+            color: '#000000',
             fontSize: '11px',
-            fontWeight: 'bold',
+            fontWeight: '900',
             padding: '3px 10px',
             borderRadius: '3px',
             letterSpacing: '1px',
+            boxShadow: `0 0 10px ${colors.glow}`,
           }}>
             {severity}
           </span>
         </div>
 
         {/* Type + Location */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <span style={{
-            background: 'rgba(0,212,255,0.12)',
-            border: '1px solid #00d4ff44',
+            background: 'rgba(0,212,255,0.15)',
+            border: '1px solid #00d4ff55',
             color: '#00d4ff',
             fontSize: '11px',
             fontWeight: 'bold',
@@ -165,7 +177,7 @@ export default function AttackNotification({ attack, onClose }) {
           }}>
             {type}
           </span>
-          <span style={{ color: '#00ff41', fontSize: '11px', alignSelf: 'center', fontWeight: '600' }}>
+          <span style={{ color: '#00ff41', fontSize: '12px', alignSelf: 'center', fontWeight: 'bold' }}>
             📍 {location}
           </span>
         </div>
@@ -173,44 +185,51 @@ export default function AttackNotification({ attack, onClose }) {
         {/* Stats row */}
         <div style={{
           display: 'flex',
-          gap: '6px',
-          borderTop: '1px solid #ffffff10',
-          paddingTop: '8px',
+          gap: '8px',
+          borderTop: '1px solid #ffffff15',
+          paddingTop: '10px',
+          marginBottom: '10px',
         }}>
           {[
-            { label: 'CONN', value: connCount },
-            { label: 'FAIL', value: failCount },
-            { label: 'SUCC', value: succCount },
+            { label: 'CONNECTIONS', value: connCount },
+            { label: 'FAILED', value: failCount },
+            { label: 'SUCCESS', value: succCount },
           ].map(({ label, value }) => (
             <div key={label} style={{
               flex: 1,
-              background: '#112b45',
+              background: '#0d2238',
+              border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: '4px',
-              padding: '5px 6px',
+              padding: '6px 4px',
               textAlign: 'center',
             }}>
-              <div style={{ color: '#ccd6dd', fontSize: '9px', letterSpacing: '1px', marginBottom: '2px' }}>{label}</div>
-              <div style={{ color: colors.text, fontSize: '15px', fontWeight: 'bold' }}>{value}</div>
+              <div style={{ color: '#90a4ae', fontSize: '8.5px', letterSpacing: '0.8px', marginBottom: '2px' }}>{label}</div>
+              <div style={{ color: colors.text, fontSize: '16px', fontWeight: '900' }}>{value}</div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* ── Auto-dismiss progress bar ─────────────────────────────────────── */}
-      <div style={{ height: '3px', background: '#112b45', position: 'relative' }}>
+        {/* Silence prompt instruction */}
         <div style={{
-          position: 'absolute', left: 0, top: 0,
-          width: `${progress}%`, height: '100%',
-          background: colors.border,
-          transition: 'width 0.1s linear',
-        }} />
+          textAlign: 'center',
+          background: 'rgba(255,0,64,0.12)',
+          border: '1px dashed rgba(255,0,64,0.4)',
+          borderRadius: '4px',
+          padding: '6px 8px',
+          fontSize: '10.5px',
+          color: '#ff8899',
+          fontWeight: 'bold',
+          letterSpacing: '0.8px',
+        }}>
+          🔊 ALARM ACTIVE — PRESS [✕] TO SILENCE
+        </div>
       </div>
 
-      {/* Inline keyframe for the pulsing dot */}
+      {/* Inline keyframe for the pulsating light */}
       <style>{`
         @keyframes pulse-dot {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.4; transform: scale(0.7); }
+          0%   { opacity: 1; transform: scale(1); }
+          100% { opacity: 0.3; transform: scale(0.6); }
         }
       `}</style>
     </div>
