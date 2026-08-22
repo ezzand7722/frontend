@@ -1343,7 +1343,11 @@ function App() {
           {activeModule === 'history' && (
             <div className="sub-screen-overlay" style={{ zIndex: 10015, pointerEvents: 'all', background: '#020b02' }}>
               <button className="close-btn-lg" type="button" aria-label="Close" title="Close" onClick={() => setActiveModule(null)}>✕</button>
-              <HistoryModule historyList={historyList} onClearHistory={() => { historyList.forEach(a => discardedAlertIds.current.add(a.id)); setHistoryList([]); }} />
+              <HistoryModule 
+                historyList={historyList} 
+                activeAttack={activeTestAttack || (activeAttacks.length > 0 ? activeAttacks[0] : null) || selectedAttackForDetail} 
+                onClearHistory={() => { historyList.forEach(a => discardedAlertIds.current.add(a.id)); setHistoryList([]); }} 
+              />
             </div>
           )}
 

@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import LiveMap from './LiveMap';
 
-const HistoryModule = ({ historyList, onClearHistory }) => {
-  const [selectedHistory, setSelectedHistory] = useState(null);
+/**
+ * HistoryModule
+ *
+ * Displays the complete incident report and 3D globe for the current attack
+ * directly, without showing a multi-attack grid.
+ */
+const HistoryModule = ({ historyList = [], activeAttack = null, onClearHistory }) => {
+  // Directly target the current active attack or the latest recorded incident
+  const currentAttack = activeAttack || (historyList && historyList.length > 0 ? historyList[0] : null);
 
-  const titleText = selectedHistory 
-    ? `INCIDENT REPORT — ${selectedHistory.date || selectedHistory.timestamp || 'MISSING'}` 
-    : "ATTACK HISTORY ARCHIVE";
+  const titleText = currentAttack 
+    ? `INCIDENT REPORT — ${currentAttack.date || currentAttack.timestamp || 'ACTIVE THREAT'}` 
+    : "INCIDENT FORENSIC REPORT";
+
+  const attackLoc = (currentAttack?.loc || currentAttack?.city || 'Amman, Jordan').toUpperCase();
+  const attackIp  = currentAttack?.ip || currentAttack?.src_ip || 'UNKNOWN';
+  const attackType = currentAttack?.attack_type || currentAttack?.type || 'Brute Force';
+  const severity  = currentAttack?.severity || 'HIGH';
 
   return (
     <div className="history-module-container" style={{ 
-      padding: '40px', 
+      padding: '30px 40px', 
       color: '#00ff41', 
       fontFamily: 'monospace',
       height: '100%', 
@@ -30,85 +42,74 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
         .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
       `}</style>
 
-      {/* الهيدر المحسن: إزالة الخط الوهمي نهائياً */}
+      {/* Header */}
       <div className="screen-header" style={{ 
-        borderBottom: '4px solid #00ff41', 
+        borderBottom: '3px solid #00ff41', 
         marginBottom: '20px', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        paddingBottom: '15px',
+        paddingBottom: '14px',
         flexShrink: 0 
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ 
             width: '6px', 
-            height: '35px', 
+            height: '32px', 
             background: '#00ff41', 
-            marginRight: '20px', 
+            marginRight: '16px', 
             boxShadow: '0 0 12px #00ff41',
             flexShrink: 0 
           }}></div>
           
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ 
-              margin: 0, 
-              fontSize: '26px', 
-              fontWeight: '700', 
-              letterSpacing: '8px', 
-              lineHeight: '1',
-              textTransform: 'uppercase',
-              display: 'inline-block', // تغيير لضمان عدم حدوث تداخل
-              marginRight: '-8px',      // موازنة مسافة الحرف الأخير لتوسيط النص برمجياً
-              padding: 0,
-              border: 'none',
-              outline: 'none'
-            }}>
-              {titleText}
-            </h2>
-            
-
-          </div>
+          <h2 style={{ 
+            margin: 0, 
+            fontSize: '22px', 
+            fontWeight: '700', 
+            letterSpacing: '5px', 
+            lineHeight: '1',
+            textTransform: 'uppercase'
+          }}>
+            {titleText}
+          </h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {!selectedHistory && (
+          {typeof onClearHistory === 'function' && (
             <button
-              onClick={() => {
-                if (typeof onClearHistory === 'function') onClearHistory();
-              }}
+              onClick={onClearHistory}
               style={{
-                padding: '10px 14px',
+                padding: '8px 14px',
                 background: 'transparent',
-                border: '2px solid #00ff41',
+                border: '1px solid #00ff41',
                 color: '#00ff41',
-                fontWeight: '900',
+                fontWeight: '700',
                 cursor: 'pointer',
-                letterSpacing: '2px',
+                letterSpacing: '1.5px',
                 transition: 'all 0.2s ease',
-                fontSize: '12px',
+                fontSize: '11px',
                 borderRadius: '2px',
-                minHeight: '38px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#00ff41';
                 e.currentTarget.style.color = '#000';
-                e.currentTarget.style.boxShadow = '0 0 18px rgba(0, 255, 65, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
                 e.currentTarget.style.color = '#00ff41';
-                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               CLEAR_HISTORY
             </button>
           )}
 
-          {selectedHistory && <span style={{ fontSize: '14px', color: '#00ff41', opacity: 0.7 }}>INCIDENT DETAILS</span>}
+          <span style={{ fontSize: '13px', color: '#00ff41', opacity: 0.8, letterSpacing: '1px' }}>
+            ● INCIDENT FORENSIC VIEW
+          </span>
         </div>
       </div>
 
+      {/* Main Content Area */}
       <div className="history-content-wrapper" style={{ 
         flex: 1, 
         minHeight: 0, 
@@ -116,201 +117,169 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {!selectedHistory ? (
-          <div className="history-grid custom-scroll" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))',
-            gap: '25px',
-            overflowY: 'auto',
-            paddingBottom: '20px',
-            paddingRight: '10px'
+        {!currentAttack ? (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '15px',
+            color: 'rgba(0,255,65,0.5)',
+            fontSize: '16px',
+            letterSpacing: '2px',
           }}>
-            {historyList.map((item) => (
-              <div 
-                key={item.id} 
-                onClick={() => {
-                  console.log('%c[HISTORY_SELECT] Selected history record:', 'color: #ffaa00; font-weight: bold;', item);
-                  setSelectedHistory(item);
-                }}
-                style={{
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  background: 'rgba(0,15,0,0.8)',
-                  padding: '26px 24px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: '160px',
-                  justifyContent: 'space-between',
-                  borderRadius: '2px',
-                  boxShadow: '0 0 10px rgba(0, 255, 65, 0.1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0,20,0,0.95)';
-                  e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.6)';
-                  e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 65, 0.3)';
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(0,15,0,0.8)';
-                  e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.3)';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 65, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'rgba(0,255,65,0.6)', fontSize: '13px', fontWeight: '600' }}>&gt; TIMESTAMP: {item.date}</span> 
-                  <span style={{ fontWeight: '900', color: (item.severityScore || parseFloat(item.threat) || 0) > 85 ? '#ff0000' : '#00ff41', fontSize: '14px' }}>
-                    {item.type}
-                  </span> 
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '4px' }}>SOURCE_ORIGIN:</div>
-                    <span style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '14px' }}>{item.ip}</span>
-                  </div>
-                  <span style={{ border: '1px solid #00ff41', padding: '4px 10px', fontSize: '12px', fontWeight: '600', color: '#00ff41' }}>{item.status}</span>
-                </div>
-                <div style={{ height: '6px', width: '100%', background: '#081a08', marginTop: '14px', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(item.severityScore || parseFloat(item.threat) || 0)}%`, background: (item.severityScore || parseFloat(item.threat) || 0) > 85 ? '#ff0000' : '#ffaa00', boxShadow: (item.severityScore || parseFloat(item.threat) || 0) > 85 ? '0 0 10px #ff0000' : 'none' }}></div>
-                </div>
-              </div>
-            ))}
+            <div style={{ fontSize: '32px' }}>📡</div>
+            <div>// NO_ACTIVE_INCIDENT_OR_RECORD_FOUND</div>
+            <div style={{ fontSize: '12px', opacity: 0.6 }}>AWAITING THREAT EVENT TELEMETRY FROM SENSORS</div>
           </div>
         ) : (
           <div className="split-layout" style={{ 
             display: 'grid', 
             gridTemplateColumns: '1.2fr 1fr', 
-            gap: '30px', 
+            gap: '25px', 
             height: '100%', 
             minHeight: 0 
           }}>
+            {/* Left Column: 3D Globe */}
             <div style={{ 
-              border: '1px solid rgba(0,255,65,0.2)', 
+              border: '1px solid rgba(0,255,65,0.3)', 
               background: '#000', 
               position: 'relative', 
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              borderRadius: '4px',
             }}>
               <div style={{ flex: 1 }}>
                 <LiveMap 
-                  key={selectedHistory.id} 
+                  key={currentAttack.id || currentAttack.ip} 
                   isAttacked={true} 
-                  attackerCoords={selectedHistory.coords} 
-                  attackerData={selectedHistory}
-                  customWidth={800} 
-                  customHeight={600} 
+                  attackerCoords={currentAttack.coords} 
+                  attackerData={currentAttack}
+                  customWidth={750} 
+                  customHeight={550} 
                 />
               </div>
-              <div style={{ position: 'absolute', top: '20px', left: '20px', fontSize: '12px', background: 'rgba(0,10,0,0.85)', padding: '10px 15px', borderLeft: '3px solid #ffaa00' }}>
-                ATTACK ORIGIN: <span style={{ color: '#ffaa00', fontWeight: 'bold' }}>{(selectedHistory.loc || selectedHistory.city || 'MISSING').toUpperCase()}</span>
+              <div style={{ 
+                position: 'absolute', 
+                top: '16px', 
+                left: '16px', 
+                fontSize: '12px', 
+                background: 'rgba(0,10,0,0.9)', 
+                padding: '8px 14px', 
+                borderLeft: '3px solid #ffaa00',
+                borderRadius: '2px',
+                boxShadow: '0 0 10px rgba(0,0,0,0.8)'
+              }}>
+                TARGET LOCATION: <span style={{ color: '#00ff41', fontWeight: 'bold' }}>{attackLoc}</span>
               </div>
             </div>
 
+            {/* Right Column: Forensic Details */}
             <div style={{ 
-              border: '1px solid #00ff41', 
+              border: '1px solid rgba(0,255,65,0.4)', 
               display: 'flex', 
               flexDirection: 'column', 
               height: '100%', 
               minHeight: 0,
-              background: 'rgba(0, 15, 0, 0.4)'
+              background: 'rgba(0, 15, 0, 0.5)',
+              borderRadius: '4px',
             }}>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '30px' }} className="custom-scroll">
-                <h4 style={{ color: '#00ff41', margin: '0 0 20px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '10px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }} className="custom-scroll">
+                <h4 style={{ color: '#00ff41', margin: '0 0 16px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '8px', letterSpacing: '1px' }}>
                   // THREAT_ACTOR_PROFILE
                 </h4>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {[
-                      ['SOURCE_IP (src_ip)', selectedHistory.ip || selectedHistory.src_ip, '#ffaa00'],
-                      ['NETWORK_ISP', selectedHistory.isp || 'MISSING', ''],
-                      ['PROTOCOL', selectedHistory.proto || 'UDP', ''],
-                      ['LOCATION', (selectedHistory.loc || selectedHistory.city || 'MISSING').toUpperCase(), ''],
-                      ['TARGET_PORT', selectedHistory.port || '2222', ''],
-                      ['ATTACK_TYPE', selectedHistory.attack_type || selectedHistory.type, '#ff9900'],
-                      ['THREAT_LEVEL (severity)', selectedHistory.severity || 'MISSING', '#ff0000'],
-                      ['COORDINATES', selectedHistory.coords ? `${selectedHistory.coords.lat}, ${selectedHistory.coords.lng}` : '', ''],
-                      ['AI_MITIGATION', selectedHistory.status || 'LOGGED', '#00ff41']
+                      ['SOURCE_IP', attackIp, '#ffaa00'],
+                      ['LOCATION', attackLoc, '#00ff41'],
+                      ['PROTOCOL', currentAttack.proto || 'TCP', ''],
+                      ['TARGET_PORT', currentAttack.port || '2222', ''],
+                      ['ATTACK_TYPE', attackType, '#ff9900'],
+                      ['THREAT_LEVEL', severity, '#ff0000'],
+                      ['AI_STATUS', currentAttack.status || 'DETECTED', '#00ff41']
                     ].map(([label, value, color], i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
-                        <td style={{ padding: '12px 0', opacity: 0.5, fontSize: '12px' }}>{label}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: color || '#fff' }}>{value}</td>
+                        <td style={{ padding: '10px 0', opacity: 0.6, fontSize: '11.5px', letterSpacing: '0.5px' }}>{label}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: color || '#fff', fontSize: '12.5px' }}>{value}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
-                {selectedHistory.commands_used && selectedHistory.commands_used.length > 0 && (
+                {/* Executed Commands */}
+                {currentAttack.commands_used && currentAttack.commands_used.length > 0 && (
                   <>
-                    <h4 style={{ color: '#ffaa00', margin: '30px 0 15px 0', borderBottom: '1px solid rgba(255,170,0,0.3)', paddingBottom: '10px' }}>
-                      // EXECUTED_COMMANDS
+                    <h4 style={{ color: '#ffaa00', margin: '24px 0 12px 0', borderBottom: '1px solid rgba(255,170,0,0.3)', paddingBottom: '8px', letterSpacing: '1px' }}>
+                      // EXECUTED_COMMANDS ({currentAttack.commands_used.length})
                     </h4>
-                    <div style={{ background: 'rgba(255, 170, 0, 0.05)', padding: '15px', border: '1px solid rgba(255,170,0,0.2)', maxHeight: '200px', overflowY: 'auto' }} className="custom-scroll">
-                      {selectedHistory.commands_used.map((cmd, i) => (
-                        <div key={i} style={{ fontFamily: 'monospace', color: '#fff', fontSize: '12px', marginBottom: '8px', wordBreak: 'break-all' }}>
-                          <span style={{ color: '#ffaa00', marginRight: '8px' }}>&gt;</span>{cmd}
+                    <div style={{ background: 'rgba(255, 170, 0, 0.06)', padding: '12px', border: '1px solid rgba(255,170,0,0.25)', maxHeight: '160px', overflowY: 'auto', borderRadius: '3px' }} className="custom-scroll">
+                      {currentAttack.commands_used.map((cmd, i) => (
+                        <div key={i} style={{ fontFamily: 'monospace', color: '#fff', fontSize: '11.5px', marginBottom: '6px', wordBreak: 'break-all' }}>
+                          <span style={{ color: '#ffaa00', marginRight: '6px' }}>&gt;</span>{cmd}
                         </div>
                       ))}
                     </div>
                   </>
                 )}
 
-                <h4 style={{ color: '#00ff41', margin: '30px 0 15px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '10px' }}>
+                {/* Attack Statistics */}
+                <h4 style={{ color: '#00ff41', margin: '24px 0 12px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '8px', letterSpacing: '1px' }}>
                   // ATTACK_STATISTICS
                 </h4>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {[
-                      ['CONNECTION_COUNT', selectedHistory.connectionCount ?? selectedHistory.connection_count ?? 0, '#ffaa00'],
-                      ['SUCCESS_COUNT', selectedHistory.successCount ?? selectedHistory.success_count ?? 0, '#00ff41'],
-                      ['FAILED_COUNT', selectedHistory.failedCount ?? selectedHistory.failed_count ?? 0, '#ff5555'],
-                      ['UNIQUE_PASSWORDS', selectedHistory.uniquePasswords ?? selectedHistory.unique_passwords ?? 0, '#ffaa00'],
-                      ['COMMAND_COUNT', selectedHistory.commandCount ?? selectedHistory.command_count ?? 0, '#ff6666'],
-                      ['SUSPICIOUS_COMMANDS', selectedHistory.suspiciousCmds ?? selectedHistory.suspicious_commands ?? 0, '#ff0000']
+                      ['CONNECTION_COUNT', currentAttack.connectionCount ?? currentAttack.connection_count ?? 0, '#ffaa00'],
+                      ['SUCCESS_COUNT', currentAttack.successCount ?? currentAttack.success_count ?? 0, '#00ff41'],
+                      ['FAILED_COUNT', currentAttack.failedCount ?? currentAttack.failed_count ?? 0, '#ff5555'],
+                      ['UNIQUE_PASSWORDS', currentAttack.uniquePasswords ?? currentAttack.unique_passwords ?? 0, '#ffaa00'],
+                      ['COMMAND_COUNT', currentAttack.commandCount ?? currentAttack.command_count ?? (currentAttack.commands_used ? currentAttack.commands_used.length : 0), '#ff6666'],
+                      ['SUSPICIOUS_COMMANDS', currentAttack.suspiciousCmds ?? currentAttack.suspicious_commands ?? 0, '#ff0000']
                     ].map(([label, value, color], i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
-                        <td style={{ padding: '10px 0', opacity: 0.5, fontSize: '12px' }}>{label}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: color, fontSize: '13px' }}>{value}</td>
+                        <td style={{ padding: '9px 0', opacity: 0.6, fontSize: '11.5px' }}>{label}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: color, fontSize: '12.5px' }}>{value}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
-                <h4 style={{ color: '#00ff41', margin: '30px 0 20px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '10px' }}>
+                {/* Event Timeline */}
+                <h4 style={{ color: '#00ff41', margin: '24px 0 14px 0', borderBottom: '1px solid rgba(0,255,65,0.3)', paddingBottom: '8px', letterSpacing: '1px' }}>
                   // EVENT_TIMELINE
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-                  {selectedHistory.eventTimeline && selectedHistory.eventTimeline.length > 0
-                    ? selectedHistory.eventTimeline.map((evt, i) => {
+                  {currentAttack.eventTimeline && currentAttack.eventTimeline.length > 0
+                    ? currentAttack.eventTimeline.map((evt, i) => {
                         const evtTime = typeof evt === 'string' ? '' : (evt.time || '');
                         const evtEvent = typeof evt === 'string' ? evt : (evt.event || String(evt));
                         const evtStatus = typeof evt === 'string' ? 'success' : (evt.status || 'success');
                         const dotColor = evtStatus === 'critical' ? '#ff0000' : evtStatus === 'warning' ? '#ffaa00' : '#00ff41';
                         return (
-                          <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: '14px' }}>
-                            {/* Dot + vertical line column */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '16px' }}>
+                          <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '14px' }}>
                               <div style={{
-                                width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
+                                width: '12px', height: '12px', borderRadius: '50%', flexShrink: 0,
                                 background: dotColor,
                                 border: '2px solid rgba(255,255,255,0.2)',
                                 boxShadow: `0 0 8px ${dotColor}`,
                                 marginTop: '2px',
                               }} />
-                              {i < selectedHistory.eventTimeline.length - 1 && (
-                                <div style={{ width: '2px', flex: 1, minHeight: '16px', background: 'rgba(0,255,65,0.2)', marginTop: '4px' }} />
+                              {i < currentAttack.eventTimeline.length - 1 && (
+                                <div style={{ width: '2px', flex: 1, minHeight: '14px', background: 'rgba(0,255,65,0.2)', marginTop: '3px' }} />
                               )}
                             </div>
-                            {/* Text column */}
-                            <div style={{ flex: 1, paddingBottom: '4px' }}>
+                            <div style={{ flex: 1, paddingBottom: '2px' }}>
                               {evtTime && (
-                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '2px', letterSpacing: '0.5px' }}>
+                                <div style={{ fontSize: '9.5px', color: '#888', marginBottom: '2px', letterSpacing: '0.5px' }}>
                                   {evtTime}
                                 </div>
                               )}
                               <div style={{
-                                fontSize: '12px', fontWeight: '600',
+                                fontSize: '11.5px', fontWeight: '600',
                                 color: dotColor,
                                 letterSpacing: '0.3px',
                                 wordBreak: 'break-word',
@@ -322,44 +291,12 @@ const HistoryModule = ({ historyList, onClearHistory }) => {
                         );
                       })
                     : (
-                      <div style={{ color: 'rgba(0,255,65,0.4)', fontSize: '12px', padding: '10px 0', letterSpacing: '1px' }}>
-                        NO_TIMELINE_DATA_AVAILABLE
+                      <div style={{ color: 'rgba(0,255,65,0.4)', fontSize: '11.5px', padding: '8px 0', letterSpacing: '1px' }}>
+                        LOGGED_INCIDENT_STREAM_ACTIVE
                       </div>
                     )
                   }
                 </div>
-              </div>
-
-              <div style={{ padding: '24px', borderTop: '1px solid rgba(0,255,65,0.3)', flexShrink: 0 }}>
-                <button 
-                  onClick={() => setSelectedHistory(null)}
-                  style={{ 
-                    width: '100%', 
-                    padding: '18px 20px', 
-                    background: 'transparent', 
-                    border: '2px solid #00ff41', 
-                    color: '#00ff41',
-                    fontWeight: '900',
-                    cursor: 'pointer',
-                    letterSpacing: '2px',
-                    transition: 'all 0.3s ease',
-                    fontSize: '16px',
-                    borderRadius: '2px',
-                    minHeight: '55px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#00ff41';
-                    e.currentTarget.style.color = '#000';
-                    e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 255, 65, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#00ff41';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  &lt;&lt; BACK_TO_ARCHIVE
-                </button>
               </div>
             </div>
           </div>
