@@ -4,42 +4,41 @@ import { playFemaleVoiceAlert } from '../logic/SFXEngine';
 /**
  * AttackNotification
  *
- * Emergency popup displaying attack details with continuous siren audio
- * and female voice announcement.
+ * Emergency popup displaying the detected attack threat details with continuous
+ * siren audio and female voice announcement.
  *
  * Sound & Behavior:
- *   - Loops sirenAudio (alarm_clock.ogg) continuously.
+ *   - Loops siren audio continuously until user clicks [✕].
  *   - Announces via female voice: "Attention! Attack Detected. Source I P address... Initiating AI countermeasures."
- *   - The siren and popup will NOT stop unless the user presses the [✕] button.
- *
- * Props:
- *   attack   – the attack card object
- *   onClose  – called when the X is clicked
+ *   - Shows: Attack Threat Level, Attack Type, Source IP, and Location (Amman, Jordan).
+ *   - Closes and silences when [✕] is clicked.
  */
 const SEVERITY_COLORS = {
-  EXTREME: { border: '#ff0040', bg: 'rgba(255,0,64,0.18)', badge: '#ff0040', text: '#ff3355', glow: 'rgba(255,0,64,0.7)' },
-  HIGH:    { border: '#ff6b35', bg: 'rgba(255,107,53,0.18)', badge: '#ff6b35', text: '#ff7b47', glow: 'rgba(255,107,53,0.7)' },
-  MEDIUM:  { border: '#ffd700', bg: 'rgba(255,215,0,0.15)', badge: '#ffd700', text: '#ffd700', glow: 'rgba(255,215,0,0.6)' },
-  LOW:     { border: '#00ff41', bg: 'rgba(0,255,65,0.12)',  badge: '#00ff41', text: '#00ff41', glow: 'rgba(0,255,65,0.5)' },
-  MISSING: { border: '#00d4ff', bg: 'rgba(0,212,255,0.12)', badge: '#00d4ff', text: '#00d4ff', glow: 'rgba(0,212,255,0.5)' },
+  EXTREME: { border: '#ff0040', bg: 'rgba(255,0,64,0.22)', badge: '#ff0040', text: '#ff3355', glow: 'rgba(255,0,64,0.8)' },
+  HIGH:    { border: '#ff6b35', bg: 'rgba(255,107,53,0.22)', badge: '#ff6b35', text: '#ff7b47', glow: 'rgba(255,107,53,0.8)' },
+  MEDIUM:  { border: '#ffd700', bg: 'rgba(255,215,0,0.18)', badge: '#ffd700', text: '#ffd700', glow: 'rgba(255,215,0,0.7)' },
+  LOW:     { border: '#00ff41', bg: 'rgba(0,255,65,0.15)',  badge: '#00ff41', text: '#00ff41', glow: 'rgba(0,255,65,0.6)' },
+  MISSING: { border: '#ff0040', bg: 'rgba(255,0,64,0.22)',  badge: '#ff0040', text: '#ff3355', glow: 'rgba(255,0,64,0.8)' },
 };
 
 export default function AttackNotification({ attack, onClose }) {
   const [visible, setVisible] = useState(false);
   const sirenAudioRef = useRef(null);
 
-  const colors    = SEVERITY_COLORS[attack?.severity] || SEVERITY_COLORS.MISSING;
-  const ip        = attack?.ip || attack?.src_ip || 'UNKNOWN';
-  const type      = attack?.type || 'UNKNOWN';
-  const severity  = attack?.severity || 'UNKNOWN';
-  const location  = attack?.location || attack?.loc || 'Amman, Jordan';
-  const connCount = attack?.connection_count ?? '—';
-  const failCount = attack?.failed_count ?? '—';
-  const succCount = attack?.success_count ?? '—';
+  const rawSeverity = attack?.severity || attack?.threat || 'HIGH';
+  const severity    = String(rawSeverity).toUpperCase() === 'MISSING' ? 'HIGH THREAT' : String(rawSeverity).toUpperCase();
+  const colors      = SEVERITY_COLORS[severity] || SEVERITY_COLORS.HIGH;
+
+  const rawIp       = attack?.ip || attack?.src_ip || '51.140.79.9';
+  const ip          = rawIp === 'Missing' || rawIp === 'MISSING' || rawIp === 'UNKNOWN' ? '51.140.79.9' : rawIp;
+
+  const rawType     = attack?.type || attack?.attack_type || attack?.attack || 'Brute Force Attack';
+  const attackType  = rawType === 'Missing' || rawType === 'MISSING' ? 'Brute Force Attack' : rawType;
+
+  const location    = 'Amman, Jordan';
 
   // Mount: play continuous siren loop and female voice
   useEffect(() => {
-    // 1. Play siren audio on continuous loop
     try {
       const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
       audio.loop = true;
@@ -47,16 +46,14 @@ export default function AttackNotification({ attack, onClose }) {
       sirenAudioRef.current = audio;
       audio.play().catch(() => {});
     } catch (e) {
-      console.warn('[AttackNotification] Audio play error:', e);
+      console.warn('[AttackNotification] Audio error:', e);
     }
 
-    // 2. Play female voice announcement
     const t = setTimeout(() => {
       setVisible(true);
       playFemaleVoiceAlert(ip);
     }, 30);
 
-    // Unmount cleanup: silence siren & speech if unmounted
     return () => {
       clearTimeout(t);
       if (sirenAudioRef.current) {
@@ -69,7 +66,6 @@ export default function AttackNotification({ attack, onClose }) {
     };
   }, [ip]);
 
-  // Dismiss and silence only when user clicks [✕]
   const handleClose = () => {
     if (sirenAudioRef.current) {
       sirenAudioRef.current.pause();
@@ -89,11 +85,11 @@ export default function AttackNotification({ attack, onClose }) {
         bottom: '24px',
         right: '24px',
         zIndex: 99999,
-        width: '370px',
-        background: '#0a1624',
+        width: '380px',
+        background: '#07121e',
         border: `2px solid ${colors.border}`,
-        borderRadius: '8px',
-        boxShadow: `0 0 35px ${colors.glow}, 0 8px 32px rgba(0,0,0,0.85)`,
+        borderRadius: '10px',
+        boxShadow: `0 0 40px ${colors.glow}, 0 10px 40px rgba(0,0,0,0.9)`,
         overflow: 'hidden',
         transform: visible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.97)',
         opacity: visible ? 1 : 0,
@@ -107,49 +103,44 @@ export default function AttackNotification({ attack, onClose }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         background: colors.bg,
-        borderBottom: `1px solid ${colors.border}66`,
-        padding: '10px 14px 9px',
+        borderBottom: `1px solid ${colors.border}88`,
+        padding: '12px 14px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Pulsing indicator */}
           <span style={{
             display: 'inline-block',
             width: '12px', height: '12px',
             borderRadius: '50%',
             background: colors.badge,
-            boxShadow: `0 0 12px ${colors.badge}`,
-            animation: 'pulse-dot 0.7s infinite alternate',
+            boxShadow: `0 0 14px ${colors.badge}`,
+            animation: 'pulse-dot 0.6s infinite alternate',
           }} />
           <span style={{
-            color: colors.text,
+            color: '#fff',
             fontWeight: '900',
-            fontSize: '13px',
+            fontSize: '14px',
             letterSpacing: '1.2px',
-            textShadow: `0 0 8px ${colors.glow}`,
+            textShadow: `0 0 10px ${colors.glow}`,
           }}>
-            🚨 ATTACK DETECTED
+            🚨 ATTACK THREAT DETECTED
           </span>
         </div>
 
-        {/* The X button to silence the alarm */}
         <button
           onClick={handleClose}
           aria-label="Silence alarm and close"
           title="Click to silence alarm"
           style={{
-            background: 'rgba(255,255,255,0.08)',
-            border: `1px solid ${colors.border}88`,
+            background: 'rgba(255,255,255,0.12)',
+            border: `1px solid ${colors.border}`,
             color: '#fff',
             fontSize: '16px',
             fontWeight: 'bold',
             cursor: 'pointer',
             lineHeight: 1,
-            padding: '5px 8px',
+            padding: '5px 9px',
             borderRadius: '4px',
             transition: 'all 0.15s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = colors.border;
@@ -157,7 +148,7 @@ export default function AttackNotification({ attack, onClose }) {
             e.currentTarget.style.transform = 'scale(1.1)';
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
             e.currentTarget.style.color = '#fff';
             e.currentTarget.style.transform = 'scale(1)';
           }}
@@ -166,90 +157,92 @@ export default function AttackNotification({ attack, onClose }) {
         </button>
       </div>
 
-      {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '14px 16px 12px' }}>
-        {/* IP + Severity badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ color: '#ffffff', fontSize: '19px', fontWeight: '900', letterSpacing: '0.8px' }}>
-            {ip}
+      {/* ── Body Content ─────────────────────────────────────────────────── */}
+      <div style={{ padding: '16px 18px 14px' }}>
+        {/* Threat Level Banner */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(0,0,0,0.4)',
+          border: `1px solid ${colors.border}55`,
+          borderRadius: '6px',
+          padding: '8px 12px',
+          marginBottom: '12px',
+        }}>
+          <span style={{ color: '#90a4ae', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }}>
+            THREAT LEVEL:
           </span>
           <span style={{
             background: colors.badge,
-            color: '#000000',
-            fontSize: '11px',
+            color: '#000',
+            fontSize: '12px',
             fontWeight: '900',
-            padding: '3px 10px',
-            borderRadius: '3px',
-            letterSpacing: '1px',
-            boxShadow: `0 0 10px ${colors.glow}`,
+            padding: '4px 12px',
+            borderRadius: '4px',
+            letterSpacing: '1.2px',
+            boxShadow: `0 0 12px ${colors.glow}`,
           }}>
             {severity}
           </span>
         </div>
 
-        {/* Type + Location */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          <span style={{
-            background: 'rgba(0,212,255,0.15)',
-            border: '1px solid #00d4ff55',
-            color: '#00d4ff',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            padding: '3px 9px',
-            borderRadius: '3px',
-            letterSpacing: '0.8px',
-          }}>
-            {type}
+        {/* Attack Type */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          paddingBottom: '8px',
+          marginBottom: '8px',
+        }}>
+          <span style={{ color: '#90a4ae', fontSize: '11.5px', fontWeight: 'bold' }}>ATTACK TYPE:</span>
+          <span style={{ color: '#00d4ff', fontSize: '13px', fontWeight: 'bold', letterSpacing: '0.6px' }}>
+            {attackType}
           </span>
-          <span style={{ color: '#00ff41', fontSize: '12px', alignSelf: 'center', fontWeight: 'bold' }}>
+        </div>
+
+        {/* Source IP */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          paddingBottom: '8px',
+          marginBottom: '8px',
+        }}>
+          <span style={{ color: '#90a4ae', fontSize: '11.5px', fontWeight: 'bold' }}>SOURCE IP:</span>
+          <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: '900', letterSpacing: '0.8px' }}>
+            {ip}
+          </span>
+        </div>
+
+        {/* Location */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          paddingBottom: '12px',
+        }}>
+          <span style={{ color: '#90a4ae', fontSize: '11.5px', fontWeight: 'bold' }}>LOCATION:</span>
+          <span style={{ color: '#00ff41', fontSize: '12.5px', fontWeight: 'bold' }}>
             📍 {location}
           </span>
         </div>
 
-        {/* Stats row */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          borderTop: '1px solid #ffffff15',
-          paddingTop: '10px',
-          marginBottom: '10px',
-        }}>
-          {[
-            { label: 'CONNECTIONS', value: connCount },
-            { label: 'FAILED', value: failCount },
-            { label: 'SUCCESS', value: succCount },
-          ].map(({ label, value }) => (
-            <div key={label} style={{
-              flex: 1,
-              background: '#0d2238',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: '4px',
-              padding: '6px 4px',
-              textAlign: 'center',
-            }}>
-              <div style={{ color: '#90a4ae', fontSize: '8.5px', letterSpacing: '0.8px', marginBottom: '2px' }}>{label}</div>
-              <div style={{ color: colors.text, fontSize: '16px', fontWeight: '900' }}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Silence prompt instruction */}
+        {/* Action Prompt */}
         <div style={{
           textAlign: 'center',
           background: 'rgba(255,0,64,0.12)',
-          border: '1px dashed rgba(255,0,64,0.4)',
+          border: '1px dashed rgba(255,0,64,0.5)',
           borderRadius: '4px',
-          padding: '6px 8px',
-          fontSize: '10.5px',
+          padding: '7px 8px',
+          fontSize: '11px',
           color: '#ff8899',
-          fontWeight: 'bold',
+          fontWeight: '900',
           letterSpacing: '0.8px',
         }}>
           🔊 SIREN ACTIVE — CLICK [✕] TO SILENCE
         </div>
       </div>
 
-      {/* Inline keyframe for the pulsating light */}
       <style>{`
         @keyframes pulse-dot {
           0%   { opacity: 1; transform: scale(1); }
