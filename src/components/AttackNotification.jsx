@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { startContinuousAlarm, stopContinuousAlarm } from '../logic/SFXEngine';
+import React, { useEffect, useRef, useState } from 'react';
+import { playFemaleVoiceAlert } from '../logic/SFXEngine';
 
 /**
  * AttackNotification
  *
- * An emergency warning popup that appears in the bottom-right corner whenever a
- * new attack is detected.
+ * Emergency popup displaying attack details with continuous siren audio
+ * and female voice announcement.
  *
- * Audio & Behavior:
- *   - Starts a CONTINUOUS LOUD BEEP and repeating "DANGER! DANGER!" voice alert.
- *   - The alarm and popup will NOT stop until the user explicitly clicks the [✕] button.
- *   - Displays source IP, attack type, severity, location (Amman, Jordan), and stats.
+ * Sound & Behavior:
+ *   - Loops sirenAudio (alarm_clock.ogg) continuously.
+ *   - Announces via female voice: "Attention! Attack Detected. Source I P address... Initiating AI countermeasures."
+ *   - The siren and popup will NOT stop unless the user presses the [✕] button.
  *
  * Props:
  *   attack   – the attack card object
@@ -26,34 +26,58 @@ const SEVERITY_COLORS = {
 
 export default function AttackNotification({ attack, onClose }) {
   const [visible, setVisible] = useState(false);
+  const sirenAudioRef = useRef(null);
 
   const colors    = SEVERITY_COLORS[attack?.severity] || SEVERITY_COLORS.MISSING;
   const ip        = attack?.ip || attack?.src_ip || 'UNKNOWN';
   const type      = attack?.type || 'UNKNOWN';
   const severity  = attack?.severity || 'UNKNOWN';
-  // Location explicitly Amman, Jordan
   const location  = attack?.location || attack?.loc || 'Amman, Jordan';
   const connCount = attack?.connection_count ?? '—';
   const failCount = attack?.failed_count ?? '—';
   const succCount = attack?.success_count ?? '—';
 
-  // Mount: start continuous loud beep + Danger Danger voice loop
+  // Mount: play continuous siren loop and female voice
   useEffect(() => {
+    // 1. Play siren audio on continuous loop
+    try {
+      const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+      audio.loop = true;
+      audio.volume = 0.85;
+      sirenAudioRef.current = audio;
+      audio.play().catch(() => {});
+    } catch (e) {
+      console.warn('[AttackNotification] Audio play error:', e);
+    }
+
+    // 2. Play female voice announcement
     const t = setTimeout(() => {
       setVisible(true);
-      startContinuousAlarm("Danger! Danger! Attack detected!");
+      playFemaleVoiceAlert(ip);
     }, 30);
 
-    // Unmount cleanup: always guarantee sound stops if component unmounts
+    // Unmount cleanup: silence siren & speech if unmounted
     return () => {
       clearTimeout(t);
-      stopContinuousAlarm();
+      if (sirenAudioRef.current) {
+        sirenAudioRef.current.pause();
+        sirenAudioRef.current.currentTime = 0;
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
-  }, []);
+  }, [ip]);
 
-  // Dismiss only when user clicks [✕]
+  // Dismiss and silence only when user clicks [✕]
   const handleClose = () => {
-    stopContinuousAlarm();
+    if (sirenAudioRef.current) {
+      sirenAudioRef.current.pause();
+      sirenAudioRef.current.currentTime = 0;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
     setVisible(false);
     setTimeout(() => onClose?.(), 250);
   };
@@ -103,7 +127,7 @@ export default function AttackNotification({ attack, onClose }) {
             letterSpacing: '1.2px',
             textShadow: `0 0 8px ${colors.glow}`,
           }}>
-            🚨 DANGER! ATTACK DETECTED
+            🚨 ATTACK DETECTED
           </span>
         </div>
 
@@ -221,7 +245,7 @@ export default function AttackNotification({ attack, onClose }) {
           fontWeight: 'bold',
           letterSpacing: '0.8px',
         }}>
-          🔊 ALARM ACTIVE — PRESS [✕] TO SILENCE
+          🔊 SIREN ACTIVE — CLICK [✕] TO SILENCE
         </div>
       </div>
 

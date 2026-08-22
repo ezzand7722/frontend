@@ -205,10 +205,9 @@ function App() {
 
     isSpeaking.current = true;
 
-    playBeepBeep(3);
     window.speechSynthesis.cancel();
 
-    const alertMsg = new SpeechSynthesisUtterance("Danger! Danger! Attack Detected.");
+    const alertMsg = new SpeechSynthesisUtterance("Attention! Attack Detected.");
     alertMsg.pitch = 1.4;
     alertMsg.rate = 1.1;
 
