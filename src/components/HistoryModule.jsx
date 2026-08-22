@@ -5,7 +5,8 @@ import LiveMap from './LiveMap';
  * HistoryModule
  *
  * Screen 1 (Default): Full attack history archive list.
- * Screen 2 (On Card Click): ONLY the chosen attack's 3D Globe and forensic details.
+ * Screen 2 (On Card Click): ONLY the chosen attack's 3D Globe and forensic details,
+ * with strictly ONE "BACK TO ARCHIVE" button.
  */
 const HistoryModule = ({ historyList = [], onClearHistory }) => {
   const [selectedHistory, setSelectedHistory] = useState(null);
@@ -69,7 +70,7 @@ const HistoryModule = ({ historyList = [], onClearHistory }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {!selectedHistory && (
+          {!selectedHistory ? (
             <button
               onClick={() => {
                 if (typeof onClearHistory === 'function') onClearHistory();
@@ -97,13 +98,11 @@ const HistoryModule = ({ historyList = [], onClearHistory }) => {
             >
               CLEAR_HISTORY
             </button>
-          )}
-
-          {selectedHistory && (
+          ) : (
             <button
               onClick={() => setSelectedHistory(null)}
               style={{
-                padding: '8px 14px',
+                padding: '10px 18px',
                 background: '#00ff41',
                 border: '1px solid #00ff41',
                 color: '#000',
@@ -111,8 +110,9 @@ const HistoryModule = ({ historyList = [], onClearHistory }) => {
                 cursor: 'pointer',
                 letterSpacing: '1.5px',
                 transition: 'all 0.2s ease',
-                fontSize: '11px',
-                borderRadius: '2px',
+                fontSize: '12px',
+                borderRadius: '3px',
+                boxShadow: '0 0 15px rgba(0, 255, 65, 0.4)'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -404,38 +404,6 @@ const HistoryModule = ({ historyList = [], onClearHistory }) => {
                     )
                   }
                 </div>
-              </div>
-
-              {/* Bottom Back Button */}
-              <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(0,255,65,0.3)', flexShrink: 0 }}>
-                <button 
-                  onClick={() => setSelectedHistory(null)}
-                  style={{ 
-                    width: '100%', 
-                    padding: '14px 20px', 
-                    background: 'transparent', 
-                    border: '2px solid #00ff41', 
-                    color: '#00ff41',
-                    fontWeight: '900',
-                    cursor: 'pointer',
-                    letterSpacing: '2px',
-                    transition: 'all 0.25s ease',
-                    fontSize: '14px',
-                    borderRadius: '2px',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#00ff41';
-                    e.currentTarget.style.color = '#000';
-                    e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 65, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#00ff41';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  &lt;&lt; BACK TO ARCHIVE
-                </button>
               </div>
             </div>
           </div>
