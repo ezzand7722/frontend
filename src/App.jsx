@@ -193,7 +193,7 @@ function App() {
 
   const playFemaleAlert = useCallback(() => {
     // Ø¥Ø°Ø§ ÙƒØ§Ù† Ù‡Ù†Ø§Ùƒ Ù†Ø·Ù‚ Ø¬Ø§Ø±Ù  Ø£Ùˆ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ù…ÙƒØªÙˆÙ…Ø©ØŒ Ø§Ø®Ø±Ø¬ Ù ÙˆØ±Ø§Ù‹
-    if (isSpeaking.current || alertSuppressed || !showOverlay) return;
+    if (isSpeaking.current || alertSuppressed || (!showOverlay && !attackNotification)) return;
 
     const currentAttack = lastAttackForAlert;
 
@@ -234,7 +234,7 @@ function App() {
     };
 
     window.speechSynthesis.speak(alertMsg);
-  }, [lastAttackForAlert, alertSuppressed, showOverlay]);
+  }, [lastAttackForAlert, alertSuppressed, showOverlay, attackNotification]);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -679,8 +679,8 @@ function App() {
   useEffect(() => {
     attackRef.current = isAttacked;
 
-    if (isAttacked && showOverlay && !alertSuppressed && !alarmPlayedForSession) {
-      // ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ø§Ù„ØµÙˆØªÙŠ (Siren) Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙ‚Ø· Ø¹Ù†Ø¯ Ø¨Ø¯Ø¡ Ø§Ù„Ù‡Ø¬Ù…Ø©
+    if (isAttacked && (showOverlay || attackNotification) && !alertSuppressed && !alarmPlayedForSession) {
+      // ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ù†Ø°Ø§Ø± Ø§Ù„ØµÙˆØªÙŠ (Siren) Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© Ù Ù‚Ø· Ø¹Ù†Ø¯ Ø¨Ø¯Ø¡ Ø§Ù„Ù‡Ø¬Ù…Ø©
       if (sirenAudio.current && sirenAudio.current.paused) {
         sirenAudio.current.loop = true;
         sirenAudio.current.play().catch(() => { });
@@ -690,7 +690,7 @@ function App() {
       // ÙˆØ¶Ø¹ Ø¹Ù„Ø§Ù…Ø© Ø¹Ù„Ù‰ Ø£Ù† Ø§Ù„Ø¥Ù†Ø°Ø§Ø± ØªÙ… ØªØ´ØºÙŠÙ„Ù‡
       setAlarmPlayedForSession(true);
     } else if (!isAttacked) {
-      // Ø¥ÙŠÙ‚Ø§Ù ÙƒÙ„ Ø´ÙŠØ¡ Ø¹Ù†Ø¯ Ø§Ù†ØªÙ‡Ø§Ø¡ Ø§Ù„Ù‡Ø¬ÙˆÙ… Ø£Ùˆ ÙƒØªÙ… Ø§Ù„ØµÙˆØª
+      // Ø¥ÙŠÙ‚Ø§Ù  ÙƒÙ„ Ø´ÙŠØ¡ Ø¹Ù†Ø¯ Ø§Ù†ØªÙ‡Ø§Ø¡ Ø§Ù„Ù‡Ø¬ÙˆÙ… Ø£Ùˆ ÙƒØªÙ… Ø§Ù„ØµÙˆØª
       window.speechSynthesis.cancel();
       isSpeaking.current = false;
       if (sirenAudio.current) {
@@ -698,7 +698,7 @@ function App() {
         sirenAudio.current.currentTime = 0;
       }
     }
-  }, [isAttacked, showOverlay, alertSuppressed, playFemaleAlert, alarmPlayedForSession]);
+  }, [isAttacked, showOverlay, attackNotification, alertSuppressed, playFemaleAlert, alarmPlayedForSession]);
 
   const muteAlerts = () => {
     if (sirenAudio.current) {
