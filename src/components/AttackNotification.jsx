@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { playAttackAlertSound } from '../logic/SFXEngine';
 
 /**
  * AttackNotification
  *
  * A non-blocking toast popup that appears in the bottom-right corner whenever a
- * new attack is detected. It shows the key details (IP, type, severity, location)
- * and has an X button so the user can dismiss it. It also auto-dismisses after
- * 12 seconds if not closed manually.
+ * new attack is detected. It plays an alert sound ("beep beep" + "DANGER! DANGER!"),
+ * shows the key details (IP, type, severity, location: Amman, Jordan), and has an X
+ * button to dismiss it. It also auto-dismisses after 12 seconds.
  *
  * Props:
  *   attack   – the attack card object (same shape used by the rest of the UI)
@@ -26,19 +27,24 @@ export default function AttackNotification({ attack, onClose }) {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(100);
 
-  const colors = SEVERITY_COLORS[attack?.severity] || SEVERITY_COLORS.MISSING;
+  const colors    = SEVERITY_COLORS[attack?.severity] || SEVERITY_COLORS.MISSING;
   const ip        = attack?.ip || attack?.src_ip || 'UNKNOWN';
   const type      = attack?.type || 'UNKNOWN';
   const severity  = attack?.severity || 'UNKNOWN';
-  const location  = attack?.location || 'Unknown Location';
+  // Location explicitly Amman, Jordan
+  const location  = attack?.location || attack?.loc || 'Amman, Jordan';
   const connCount = attack?.connection_count ?? '—';
   const failCount = attack?.failed_count ?? '—';
   const succCount = attack?.success_count ?? '—';
 
-  // Slide-in on mount
+  // Slide-in on mount and trigger Beep Beep + "Danger! Danger!" sound
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 30);
+    const t = setTimeout(() => {
+      setVisible(true);
+      playAttackAlertSound("Danger! Danger! Attack detected!");
+    }, 30);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Progress bar drain + auto-dismiss
@@ -159,7 +165,7 @@ export default function AttackNotification({ attack, onClose }) {
           }}>
             {type}
           </span>
-          <span style={{ color: '#ccd6dd', fontSize: '11px', alignSelf: 'center' }}>
+          <span style={{ color: '#00ff41', fontSize: '11px', alignSelf: 'center', fontWeight: '600' }}>
             📍 {location}
           </span>
         </div>

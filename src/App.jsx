@@ -14,7 +14,7 @@ import LiveThreatsModule from './components/LiveThreatsModule';
 import RawAIModule from './components/RawAIModule';
 import AttackNotification from './components/AttackNotification';
 import { createTestAttack, createDoubleAttackVectors, createLoopbackAttack } from './components/attackEngine';
-import { sfx } from './logic/SFXEngine';
+import { sfx, playBeepBeep, playDangerVoice, playAttackAlertSound } from './logic/SFXEngine';
 import { getActiveAttackCount, getCombinedActiveAttacks, splitPrimaryAndSecondaryAttacks } from './logic/attackState';
 
 import './App.css';
@@ -205,9 +205,10 @@ function App() {
 
     isSpeaking.current = true;
 
+    playBeepBeep(3);
     window.speechSynthesis.cancel();
 
-    const alertMsg = new SpeechSynthesisUtterance("Attention! Attack Detected.");
+    const alertMsg = new SpeechSynthesisUtterance("Danger! Danger! Attack Detected.");
     alertMsg.pitch = 1.4;
     alertMsg.rate = 1.1;
 
@@ -393,9 +394,10 @@ function App() {
               src_ip: alert.src_ip || 'Missing',
               port: alert.dest_port || 0,
               proto: alert.protocol || 'TCP',
-              loc: alert.details?.event?.metadata?.location || alert.location || 'MISSING',
-              city: (alert.details?.event?.metadata?.location || alert.location || 'MISSING').split(',')[0] || 'MISSING',
-              country: (alert.details?.event?.metadata?.location || alert.location || 'MISSING').split(',')[1]?.trim() || 'MISSING',
+              location: alert.details?.event?.metadata?.location || alert.location || 'Amman, Jordan',
+              loc: alert.details?.event?.metadata?.location || alert.location || 'Amman, Jordan',
+              city: (alert.details?.event?.metadata?.location || alert.location || 'Amman, Jordan').split(',')[0] || 'Amman',
+              country: (alert.details?.event?.metadata?.location || alert.location || 'Amman, Jordan').split(',')[1]?.trim() || 'Jordan',
               threat: severityStr,
               severity: severityStr,
               severityScore: { 'EXTREME': 100, 'HIGH': 80, 'MEDIUM': 55, 'LOW': 30, 'MISSING': 10 }[severityStr] || 50,
