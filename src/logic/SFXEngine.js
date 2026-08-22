@@ -1,4 +1,4 @@
-// Web Audio API Continuous Loud Beep & Voice Alarm Generator
+// Web Audio API Warzone Horn ("TOOOT TOOOOT TOOOOT") & Female Voice Alarm
 let audioCtx = null;
 let alarmInterval = null;
 let voiceInterval = null;
@@ -19,53 +19,106 @@ function getAudioContext() {
 }
 
 /**
- * Plays a single burst of loud emergency dual-frequency beeps.
+ * Finds a woman's voice across all platforms (Windows Zira, macOS Samantha, Google US/UK Female, etc.)
  */
-function playLoudBeepBurst() {
+function getFemaleVoice() {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const femaleKeywords = [
+    'female', 'zira', 'samantha', 'victoria', 'karen', 
+    'susan', 'hazel', 'catherine', 'helena', 'jenny', 
+    'aria', 'sarah', 'eva', 'serena', 'google uk english female'
+  ];
+  for (const kw of femaleKeywords) {
+    const found = voices.find(v => v.name.toLowerCase().includes(kw));
+    if (found) return found;
+  }
+  return voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
+}
+
+// Pre-load voices on browser ready
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    getFemaleVoice();
+  };
+}
+
+/**
+ * Plays a loud, heavy Warzone Siren / Defense Horn: "TOOOT! TOOOOT! TOOOOT!"
+ * Uses multi-oscillator synthesis (Sub-bass + Sawtooth + Square) with filter resonance.
+ */
+function playWarzoneHornBurst() {
   const ctx = getAudioContext();
   if (!ctx) return;
 
   const now = ctx.currentTime;
-  const beeps = [
-    { freq: 1100, time: 0.0, dur: 0.12 },
-    { freq: 1450, time: 0.14, dur: 0.12 },
-    { freq: 1100, time: 0.28, dur: 0.12 },
-    { freq: 1600, time: 0.42, dur: 0.16 },
+  
+  // Three heavy horn blasts: TOOOT (0.35s) - pause (0.12s) - TOOOT (0.35s) - pause (0.12s) - TOOOOT (0.55s)
+  const blasts = [
+    { start: 0.00, dur: 0.35, freqStart: 460, freqEnd: 500 },
+    { start: 0.46, dur: 0.35, freqStart: 460, freqEnd: 500 },
+    { start: 0.92, dur: 0.55, freqStart: 460, freqEnd: 540 },
   ];
 
-  beeps.forEach(({ freq, time, dur }) => {
+  blasts.forEach(({ start, dur, freqStart, freqEnd }) => {
     try {
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
+      const t0 = now + start;
+      const t1 = t0 + dur;
+
+      // 1. Fundamental Sawtooth horn
+      const oscSaw = ctx.createOscillator();
+      oscSaw.type = 'sawtooth';
+      oscSaw.frequency.setValueAtTime(freqStart, t0);
+      oscSaw.frequency.exponentialRampToValueAtTime(freqEnd, t1);
+
+      // 2. Square harmonic (fifth above for aggressive horn edge)
+      const oscSquare = ctx.createOscillator();
+      oscSquare.type = 'square';
+      oscSquare.frequency.setValueAtTime(freqStart * 1.5, t0);
+      oscSquare.frequency.exponentialRampToValueAtTime(freqEnd * 1.5, t1);
+
+      // 3. Sub-bass rumble (sub octave 0.5x for massive chest punch)
+      const oscSub = ctx.createOscillator();
+      oscSub.type = 'triangle';
+      oscSub.frequency.setValueAtTime(freqStart * 0.5, t0);
+      oscSub.frequency.exponentialRampToValueAtTime(freqEnd * 0.5, t1);
+
+      // Resonant Lowpass Filter (shapes the acoustic horn body)
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, t0);
+      filter.Q.setValueAtTime(4.0, t0);
+
+      // Master Gain for this blast (LOUD: 0.85)
       const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, t0);
+      gain.gain.linearRampToValueAtTime(0.85, t0 + 0.04);
+      gain.gain.setValueAtTime(0.85, t1 - 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t1);
 
-      osc1.type = 'sawtooth';
-      osc1.frequency.setValueAtTime(freq, now + time);
-
-      osc2.type = 'square';
-      osc2.frequency.setValueAtTime(freq * 1.5, now + time);
-
-      // Loud volume (0.75)
-      gain.gain.setValueAtTime(0, now + time);
-      gain.gain.linearRampToValueAtTime(0.75, now + time + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
-
-      osc1.connect(gain);
-      osc2.connect(gain);
+      // Routing
+      oscSaw.connect(filter);
+      oscSquare.connect(filter);
+      oscSub.connect(gain);
+      filter.connect(gain);
       gain.connect(ctx.destination);
 
-      osc1.start(now + time);
-      osc2.start(now + time);
-      osc1.stop(now + time + dur + 0.02);
-      osc2.stop(now + time + dur + 0.02);
+      // Trigger
+      oscSaw.start(t0);
+      oscSquare.start(t0);
+      oscSub.start(t0);
+
+      oscSaw.stop(t1 + 0.02);
+      oscSquare.stop(t1 + 0.02);
+      oscSub.stop(t1 + 0.02);
     } catch (e) {
-      console.warn('[SFX] Beep synthesis error:', e);
+      console.warn('[SFX] Warzone horn synthesis error:', e);
     }
   });
 }
 
 /**
- * Speaks "DANGER! DANGER!" loudly and clearly.
+ * Speaks "DANGER! DANGER!" in a clear, authoritative woman's voice.
  */
 export function playDangerVoice(text = "Danger! Danger! Attack detected!") {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -73,18 +126,14 @@ export function playDangerVoice(text = "Danger! Danger! Attack detected!") {
     window.speechSynthesis.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang = 'en-US';
-    msg.rate = 1.1;
-    msg.pitch = 1.3;
+    msg.rate = 1.05;
+    msg.pitch = 1.35; // Distinctive woman's pitch
     msg.volume = 1.0; // Max volume
 
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => 
-      v.name.includes('Female') || 
-      v.name.includes('Zira') || 
-      v.name.includes('Google US English') ||
-      v.lang === 'en-US'
-    );
-    if (voice) msg.voice = voice;
+    const femaleVoice = getFemaleVoice();
+    if (femaleVoice) {
+      msg.voice = femaleVoice;
+    }
 
     window.speechSynthesis.speak(msg);
   } catch (e) {
@@ -93,30 +142,32 @@ export function playDangerVoice(text = "Danger! Danger! Attack detected!") {
 }
 
 /**
- * Starts a CONTINUOUS loud beep and voice alarm loop that does NOT stop
- * until stopContinuousAlarm() is explicitly called (e.g. when user clicks X).
+ * Starts a CONTINUOUS loud Warzone horn ("TOOOT TOOOOT TOOOOT") and female voice alarm loop
+ * that will NOT stop until stopContinuousAlarm() is explicitly called (when user clicks [✕]).
  */
 export function startContinuousAlarm(voiceText = "Danger! Danger! Attack detected!") {
   if (isAlarmRunning) return;
   isAlarmRunning = true;
 
-  // Immediate first burst
-  playLoudBeepBurst();
+  // 1. Immediate first Warzone Horn burst ("TOOOT TOOOOT TOOOOT")
+  playWarzoneHornBurst();
+
+  // 2. Woman's voice speaks "Danger! Danger!" right as horn finishes first blast
   setTimeout(() => {
     if (isAlarmRunning) playDangerVoice(voiceText);
-  }, 250);
+  }, 1600);
 
-  // Beep every 900ms continuously
+  // 3. Repeat the Warzone Horn blast every 3.8 seconds continuously
   alarmInterval = setInterval(() => {
     if (!isAlarmRunning) return;
-    playLoudBeepBurst();
-  }, 900);
+    playWarzoneHornBurst();
+  }, 3800);
 
-  // Repeat Danger voice alert every 4.5 seconds
+  // 4. Repeat Woman's Danger voice alert every 4.2 seconds
   voiceInterval = setInterval(() => {
     if (!isAlarmRunning) return;
     playDangerVoice(voiceText);
-  }, 4500);
+  }, 4200);
 }
 
 /**
@@ -141,10 +192,10 @@ export function stopContinuousAlarm() {
 }
 
 /**
- * One-shot helper for backward compatibility
+ * Backward compatibility helpers
  */
 export function playBeepBeep(count = 3) {
-  playLoudBeepBurst();
+  playWarzoneHornBurst();
 }
 
 export function playAttackAlertSound(customText) {
